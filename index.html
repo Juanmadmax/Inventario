@@ -114,7 +114,7 @@ async function sync(){
   try{
     if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({k:CFG.k,ops:sent})});var j=await r.json();if(j.error)throw new Error(j.error);Q=Q.slice(sent.length)}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k));var d=await g.json();if(d.error)throw new Error(d.error);
-    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items;var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
+    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
     persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO"));
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
