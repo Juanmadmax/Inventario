@@ -76,6 +76,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
     <input id="fPrice" type="number" min="0" placeholder="Precio venta">
     <input id="fMin" type="number" min="0" placeholder="Stock mínimo">
   </div>
+  <div class="row" style="margin-top:8px"><input id="fPhoto" placeholder="Foto de Drive: pega el enlace o el ID (opcional)"></div>
   <div class="row" style="margin-top:8px"><input id="fCode" placeholder="Código (vacío = automático)"><button id="add" class="p">Guardar producto</button></div>
 </div>
 
@@ -157,12 +158,13 @@ function delCat(c){
 
 $("add").onclick=function(){
   var name=$("fName").value.trim();if(!name||!$("fCat").value){return}
+  var ph=pid($("fPhoto").value);if($("fPhoto").value.trim()&&!ph){alert("No reconocí el enlace de la foto. Pega el enlace de Drive (Compartir → Copiar enlace) o solo el ID.");return}
   var code=$("fCode").value.trim();
   if(!code){do{code="JM-"+String(S.seq++).padStart(4,"0")}while(byCode(code))}
   else if(byCode(code)){alert("Ese código ya existe.");return}
   S.items.unshift({id:Date.now()+""+Math.floor(Math.random()*999),code:code,name:name,cat:$("fCat").value,
-    qty:+$("fQty").value||0,cost:+$("fCost").value||0,price:+$("fPrice").value||0,min:+$("fMin").value||0});
-  ["fName","fQty","fCost","fPrice","fMin","fCode"].forEach(function(i){$(i).value=""});
+    qty:+$("fQty").value||0,cost:+$("fCost").value||0,price:+$("fPrice").value||0,min:+$("fMin").value||0,photo:ph});
+  ["fName","fQty","fCost","fPrice","fMin","fCode","fPhoto"].forEach(function(i){$(i).value=""});
   op({t:"add",item:S.items[0]});render();
 };
 $("list").onclick=function(e){
@@ -199,6 +201,7 @@ $("cls").onclick=function(){$("dlg").close()};
 $("prn").onclick=function(){try{window.print()}catch(e){}};
 
 var PH={};
+function pid(s){s=(s||"").trim();var m=s.match(/\/d\/([\w-]+)/)||s.match(/[?&]id=([\w-]+)/);if(m)return m[1];return /^[\w-]{20,}$/.test(s)?s:""}
 function post(o){o.k=CFG.k;return fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(o)}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
 async function loadPh(ids,prog){
   var need=ids.filter(function(x,n){return !PH[x]&&ids.indexOf(x)===n});
