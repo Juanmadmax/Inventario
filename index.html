@@ -6,6 +6,7 @@
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#b8860b"><title>Inventario con códigos</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{--bg:#faf8f3;--card:#fff;--tx:#1d1b16;--mu:#6f6a5d;--bd:#e4dfd0;--ac:#b8860b;--acx:#fff;--bad:#b3261e;--ok:#2e7d32;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17150f;--card:#221f17;--tx:#f2eee2;--mu:#a49d8a;--bd:#3a3628;--ac:#d4a63a;--acx:#17150f;--bad:#f2867e;--ok:#7fcf84}}
@@ -42,7 +43,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <body>
 <h1>Inventario y códigos</h1>
 
-<div class="card"><h2>Conexión con Google Sheets</h2><div class="row"><input id="cu" placeholder="URL de la aplicación web (script)"><input id="ck" type="password" placeholder="Clave secreta"></div><div class="row" style="margin-top:8px"><button id="cfgSave" class="p">Guardar y sincronizar</button><button id="syncNow">Sincronizar ahora</button></div></div>
+<div class="card"><h2>Conexión con Google Sheets</h2><div class="row"><input id="cu" placeholder="URL de la aplicación web (script)"><input id="ck" type="password" placeholder="Clave secreta"></div><div class="row" style="margin-top:8px"><button id="cfgSave" class="p">Guardar y sincronizar</button><button id="syncNow">Sincronizar ahora</button></div><div class="row" style="margin-top:8px"><button id="impBtn">Importar fotos de Drive</button><span class="mu" id="impMsg"></span></div></div>
 <div class="stats">
   <div class="stat"><span>Referencias</span><strong id="sRef">0</strong></div>
   <div class="stat"><span>Unidades</span><strong id="sUni">0</strong></div>
@@ -78,6 +79,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   <div class="row" style="margin-top:8px"><input id="fCode" placeholder="Código (vacío = automático)"><button id="add" class="p">Guardar producto</button></div>
 </div>
 
+<div class="card"><h2>Catálogo PDF</h2><div class="row"><input id="cTit" placeholder="Título de portada (opcional)" value="Catálogo"><select id="cPer"><option value="4">4 por hoja</option><option value="6" selected>6 por hoja</option><option value="9">9 por hoja</option></select></div><div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cGen" class="p">Generar catálogo</button></div><div class="mu" id="cMsg" style="margin-top:6px"></div></div>
 <div class="card">
   <div class="row"><input id="q" placeholder="Buscar por nombre o código"></div>
   <div id="list" style="margin-top:6px"></div>
@@ -96,6 +98,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
     <button id="prn">Imprimir</button><button id="cls">Cerrar</button>
   </div>
 </dialog>
+<dialog id="pdlg"><h2 id="pName"></h2><div class="mu" id="pMsg"></div><img id="pImg" alt="" style="max-width:100%;border-radius:8px"><div class="row" style="justify-content:center;margin-top:8px"><button id="pCls">Cerrar</button></div></dialog>
 
 <script>
 var S={cats:["Cadenas","Aretes","Anillos","Dijes","Pulseras"],items:[],seq:1},filter="",KEY="inv_v1",dbDoc=null,timer=null;
@@ -134,7 +137,7 @@ function render(){
   list.forEach(function(i){
     h+='<div class="item"><div class="nm"><b>'+esc(i.name)+'</b><small>'+esc(i.code)+' · '+esc(i.cat)+' · '+money(i.price)+'</small></div>'+
     '<div class="qty"><button class="s" data-a="m" data-id="'+i.id+'">−</button><strong class="'+(i.qty<=i.min?"low":"")+'">'+i.qty+'</strong><button class="s" data-a="p" data-id="'+i.id+'">+</button></div>'+
-    '<div class="row"><button class="s" data-a="c" data-id="'+i.id+'">Código</button><button class="s" data-a="d" data-id="'+i.id+'">✕</button></div></div>'});
+    '<div class="row">'+(i.photo?'<button class="s" data-a="f" data-id="'+i.id+'">Foto</button>':'')+'<button class="s" data-a="c" data-id="'+i.id+'">Código</button><button class="s" data-a="d" data-id="'+i.id+'">✕</button></div></div>'});
   $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';
 }
 function find(id){return S.items.filter(function(i){return i.id===id})[0]}
@@ -166,6 +169,7 @@ $("list").onclick=function(e){
   var b=e.target.closest("button");if(!b)return;var it=find(b.dataset.id);if(!it)return;
   var a=b.dataset.a;
   if(a==="c"){showCode(it);return}
+  if(a==="f"){showPhoto(it);return}
   if(a==="p"){it.qty++;op({t:"mov",code:it.code,d:1})}
   else if(a==="m"&&it.qty>0){it.qty--;op({t:"mov",code:it.code,d:-1})}
   else if(a==="d"&&confirm("¿Eliminar «"+it.name+"»?")){S.items=S.items.filter(function(i){return i!==it});op({t:"del",code:it.code})}
@@ -194,6 +198,52 @@ $("tQr").onclick=function(){tab("qr")};$("tBc").onclick=function(){tab("bc")};
 $("cls").onclick=function(){$("dlg").close()};
 $("prn").onclick=function(){try{window.print()}catch(e){}};
 
+var PH={};
+function post(o){o.k=CFG.k;return fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(o)}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
+async function loadPh(ids,prog){
+  var need=ids.filter(function(x,n){return !PH[x]&&ids.indexOf(x)===n});
+  for(var i=0;i<need.length;i+=4){var j=await post({act:"photos",ids:need.slice(i,i+4)});Object.assign(PH,j.photos);if(prog)prog(Math.min(i+4,need.length),need.length)}
+}
+async function showPhoto(it){
+  $("pName").textContent=it.name+" · "+it.code;$("pImg").removeAttribute("src");$("pMsg").textContent="Cargando…";$("pdlg").showModal();
+  try{await loadPh([it.photo]);if(PH[it.photo]){$("pImg").src=PH[it.photo];$("pMsg").textContent=""}else $("pMsg").textContent="No se encontró la foto."}catch(e){$("pMsg").textContent="No se pudo cargar ("+e.message+")"}
+}
+$("pCls").onclick=function(){$("pdlg").close()};
+$("impBtn").onclick=async function(){
+  if(!CFG.u||!CFG.k){$("impMsg").textContent="Conecta primero con Google Sheets.";return}
+  $("impMsg").textContent="Importando… puede tardar.";
+  try{await sync();var j=await post({act:"import"});$("impMsg").textContent=j.fotos+" fotos, "+j.nuevos+" productos nuevos";await sync()}catch(e){$("impMsg").textContent="Error: "+e.message}
+};
+$("cGen").onclick=async function(){
+  var msg=$("cMsg");
+  if(!window.jspdf){msg.textContent="No cargó la librería PDF (¿sin internet?).";return}
+  if(!CFG.u||!CFG.k){msg.textContent="Conecta primero con Google Sheets.";return}
+  var per=+$("cPer").value,cols=per===9?3:2,rows=per/cols,out=$("cOut").checked;
+  var groups=S.cats.map(function(c){return{c:c,l:S.items.filter(function(i){return i.cat===c&&(out||i.qty>0)})}}).filter(function(g){return g.l.length});
+  if(!groups.length){msg.textContent="No hay productos para el catálogo.";return}
+  try{
+    var ids=[];groups.forEach(function(g){g.l.forEach(function(i){if(i.photo)ids.push(i.photo)})});
+    await loadPh(ids,function(a,b){msg.textContent="Descargando fotos "+a+"/"+b+"…"});
+    msg.textContent="Armando PDF…";
+    var d=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),W=210,H=297,M=12,G=6,first=true,tot=0;
+    var np=function(){if(first)first=false;else d.addPage()};
+    var tit=$("cTit").value.trim();
+    if(tit){np();d.setTextColor(30);d.setFont("helvetica","bold");d.setFontSize(34);d.text(tit,W/2,H/2-6,{align:"center"});d.setFont("helvetica","normal");d.setFontSize(12);d.text(new Date().toLocaleDateString("es-CO"),W/2,H/2+6,{align:"center"})}
+    var cw=(W-2*M-G*(cols-1))/cols,ch=(H-2*M-G*(rows-1))/rows;
+    groups.forEach(function(g){
+      np();d.setTextColor(30);d.setFont("helvetica","bold");d.setFontSize(36);d.text(g.c.toUpperCase(),W/2,H/2,{align:"center"});d.addPage();
+      g.l.forEach(function(it,n){
+        var p=n%per;if(n>0&&p===0)d.addPage();
+        var x=M+(p%cols)*(cw+G),y=M+Math.floor(p/cols)*(ch+G),bh=ch-9,src=PH[it.photo];tot++;
+        d.setDrawColor(220);d.rect(x,y,cw,bh);
+        if(src){try{var pr=d.getImageProperties(src),s=Math.min(cw/pr.width,bh/pr.height),w=pr.width*s,h=pr.height*s;d.addImage(src,pr.fileType,x+(cw-w)/2,y+(bh-h)/2,w,h)}catch(e){}}
+        if(it.price){var t="$"+Math.round(it.price).toLocaleString("es-CO");d.setFont("helvetica","bold");d.setFontSize(11);var tw=d.getTextWidth(t)+6;d.setFillColor(184,134,11);d.rect(x+cw-tw,y,tw,7,"F");d.setTextColor(255);d.text(t,x+cw-tw+3,y+5)}
+        d.setTextColor(30);d.setFont("helvetica","normal");d.setFontSize(10);d.text(it.code+(it.qty<=0?"  ·  AGOTADO":""),x,y+bh+5);
+      });
+    });
+    d.save("catalogo.pdf");msg.textContent="Listo: "+tot+" productos.";
+  }catch(e){msg.textContent="Error: "+e.message}
+};
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 $("cu").value=CFG.u;$("ck").value=CFG.k;render();status();sync();
 setInterval(sync,60000);window.addEventListener("online",sync);
