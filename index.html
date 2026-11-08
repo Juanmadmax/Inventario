@@ -6,7 +6,6 @@
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#b8860b"><title>Inventario con códigos</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{--bg:#faf8f3;--card:#fff;--tx:#1d1b16;--mu:#6f6a5d;--bd:#e4dfd0;--ac:#b8860b;--acx:#fff;--bad:#b3261e;--ok:#2e7d32;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17150f;--card:#221f17;--tx:#f2eee2;--mu:#a49d8a;--bd:#3a3628;--ac:#d4a63a;--acx:#17150f;--bad:#f2867e;--ok:#7fcf84}}
@@ -80,7 +79,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   <div class="row" style="margin-top:8px"><input id="fCode" placeholder="Código (vacío = automático)"><button id="add" class="p">Guardar producto</button></div>
 </div>
 
-<div class="card"><h2>Catálogo PDF</h2><div class="row"><input id="cTit" placeholder="Título de portada (opcional)" value="Catálogo"><select id="cPer"><option value="4">4 por hoja</option><option value="6" selected>6 por hoja</option><option value="9">9 por hoja</option></select></div><div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cGen" class="p">Generar catálogo</button></div><div class="mu" id="cMsg" style="margin-top:6px"></div></div>
+<div class="card"><h2>Carpeta de material en Drive</h2><div class="mu">Copia en tu Drive las fotos originales de los productos con stock, con una subcarpeta por categoría.</div><div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cFol" class="p">Crear carpeta en Drive</button></div><div class="mu" id="cMsg" style="margin-top:6px"></div></div>
 <div class="card">
   <div class="row"><input id="q" placeholder="Buscar por nombre o código"></div>
   <div id="list" style="margin-top:6px"></div>
@@ -217,35 +216,28 @@ $("impBtn").onclick=async function(){
   $("impMsg").textContent="Importando… puede tardar.";
   try{await sync();var j=await post({act:"import"});$("impMsg").textContent=j.fotos+" fotos, "+j.nuevos+" productos nuevos";await sync()}catch(e){$("impMsg").textContent="Error: "+e.message}
 };
-$("cGen").onclick=async function(){
-  var msg=$("cMsg");
-  if(!window.jspdf){msg.textContent="No cargó la librería PDF (¿sin internet?).";return}
+$("cFol").onclick=async function(){
+  var msg=$("cMsg"),btn=$("cFol"),ini=null,done=0,fail=[];
+  function fin(t,u){msg.textContent=t+" ";if(u){var a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";a.textContent="Abrir carpeta";msg.appendChild(a)}}
+  function lst(x){return x.slice(0,8).join(", ")+(x.length>8?" y "+(x.length-8)+" más":"")}
   if(!CFG.u||!CFG.k){msg.textContent="Conecta primero con Google Sheets.";return}
-  var per=+$("cPer").value,cols=per===9?3:2,rows=per/cols,out=$("cOut").checked;
-  var groups=S.cats.map(function(c){return{c:c,l:S.items.filter(function(i){return i.cat===c&&(out||i.qty>0)})}}).filter(function(g){return g.l.length});
-  if(!groups.length){msg.textContent="No hay productos para el catálogo.";return}
+  btn.disabled=true;msg.textContent="Preparando…";
   try{
-    var ids=[];groups.forEach(function(g){g.l.forEach(function(i){if(i.photo)ids.push(i.photo)})});
-    await loadPh(ids,function(a,b){msg.textContent="Descargando fotos "+a+"/"+b+"…"});
-    msg.textContent="Armando PDF…";
-    var d=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),W=210,H=297,M=12,G=6,first=true,tot=0;
-    var np=function(){if(first)first=false;else d.addPage()};
-    var tit=$("cTit").value.trim();
-    if(tit){np();d.setTextColor(30);d.setFont("helvetica","bold");d.setFontSize(34);d.text(tit,W/2,H/2-6,{align:"center"});d.setFont("helvetica","normal");d.setFontSize(12);d.text(new Date().toLocaleDateString("es-CO"),W/2,H/2+6,{align:"center"})}
-    var cw=(W-2*M-G*(cols-1))/cols,ch=(H-2*M-G*(rows-1))/rows;
-    groups.forEach(function(g){
-      np();d.setTextColor(30);d.setFont("helvetica","bold");d.setFontSize(36);d.text(g.c.toUpperCase(),W/2,H/2,{align:"center"});d.addPage();
-      g.l.forEach(function(it,n){
-        var p=n%per;if(n>0&&p===0)d.addPage();
-        var x=M+(p%cols)*(cw+G),y=M+Math.floor(p/cols)*(ch+G),bh=ch-9,src=PH[it.photo];tot++;
-        d.setDrawColor(220);d.rect(x,y,cw,bh);
-        if(src){try{var pr=d.getImageProperties(src),s=Math.min(cw/pr.width,bh/pr.height),w=pr.width*s,h=pr.height*s;d.addImage(src,pr.fileType,x+(cw-w)/2,y+(bh-h)/2,w,h)}catch(e){}}
-        if(it.price){var t="$"+Math.round(it.price).toLocaleString("es-CO");d.setFont("helvetica","bold");d.setFontSize(11);var tw=d.getTextWidth(t)+6;d.setFillColor(184,134,11);d.rect(x+cw-tw,y,tw,7,"F");d.setTextColor(255);d.text(t,x+cw-tw+3,y+5)}
-        d.setTextColor(30);d.setFont("helvetica","normal");d.setFontSize(10);d.text(it.code+(it.qty<=0?"  ·  AGOTADO":""),x,y+bh+5);
-      });
-    });
-    d.save("catalogo.pdf");msg.textContent="Listo: "+tot+" productos.";
-  }catch(e){msg.textContent="Error: "+e.message}
+    await sync();
+    ini=await post({act:"carpeta_ini",out:$("cOut").checked});
+    var it=ini.items;
+    if(!it.length){msg.textContent="No hay fotos para copiar."+(ini.sin.length?" Sin foto: "+lst(ini.sin)+".":"");btn.disabled=false;return}
+    for(var i=0;i<it.length;i+=10){
+      var lote=it.slice(i,i+10),r=null;
+      for(var t=0;t<3&&!r;t++){
+        try{r=await post({act:"carpeta_lote",folder:ini.folder,items:lote})}catch(e){if(t===2)throw e;await new Promise(function(f){setTimeout(f,1500)})}
+      }
+      done+=r.n;fail=fail.concat(r.fail);
+      msg.textContent="Copiando fotos "+Math.min(i+10,it.length)+" de "+it.length+"…";
+    }
+    fin("Listo: "+done+" de "+it.length+" fotos copiadas."+(fail.length?" No se pudieron copiar: "+lst(fail)+".":"")+(ini.sin.length?" Productos sin foto: "+lst(ini.sin)+".":""),ini.url);
+  }catch(e){fin("Se detuvo ("+e.message+"). Copiadas hasta ahora: "+done+(ini?" de "+ini.items.length:"")+".",ini&&ini.url)}
+  btn.disabled=false;
 };
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 $("cu").value=CFG.u;$("ck").value=CFG.k;render();status();sync();
