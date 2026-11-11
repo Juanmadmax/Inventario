@@ -52,7 +52,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <div class="card">
   <h2>Escanear o buscar código</h2>
   <div class="row"><input id="scan" placeholder="Escanea o escribe el código y presiona Enter" autocomplete="off">
-  <button id="scanMinus">Salida −1</button><button id="scanPlus" class="p">Entrada +1</button></div>
+  <button id="camBtn">Cámara</button><button id="scanMinus">Salida −1</button><button id="scanPlus" class="p">Entrada +1</button></div>
   <div id="scanMsg" class="mu" style="margin-top:6px"></div>
 </div>
 
@@ -105,6 +105,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <div class="row" style="margin-top:8px;text-align:left"><label class="mu" style="flex:1 1 100%">Foto de Drive (enlace o ID; vacío = sin foto)<input id="ePhoto"></label></div>
 <div class="mu" style="margin-top:8px">Si cambias el código, las etiquetas ya impresas dejarán de coincidir. El cambio de stock queda registrado en Movimientos.</div>
 <div class="row" style="margin-top:12px;justify-content:center"><button id="eSave" class="p">Guardar</button><button id="eCls">Cancelar</button></div></dialog>
+<dialog id="cdlg"><h2>Escanear con la cámara</h2><video id="cv" playsinline muted style="width:100%;border-radius:8px;background:#000"></video><div class="mu" id="cInfo" style="margin:8px 0">Apunta al QR o código de barras.</div><div class="row" style="justify-content:center"><button id="cMinus">Salida −1</button><button id="cPlus" class="p">Entrada +1</button><button id="cCls">Cerrar</button></div></dialog>
 <dialog id="pdlg"><h2 id="pName"></h2><div class="mu" id="pMsg"></div><img id="pImg" alt="" style="max-width:100%;border-radius:8px"><div class="row" style="justify-content:center;margin-top:8px"><button id="pCls">Cerrar</button></div></dialog>
 
 <script>
@@ -261,6 +262,25 @@ $("eSave").onclick=function(){
   if(d)op({t:"mov",code:nc,d:d});
   $("edlg").close();render();
 };
+var camS=null,camT=null,lastC="",lastT=0;
+async function camOpen(){
+  if(!("BarcodeDetector" in window)){alert("Este navegador no puede leer códigos con la cámara. Usa Chrome en Android, o un lector externo.");return}
+  try{
+    var det=new BarcodeDetector({formats:["qr_code","code_128"]});
+    camS=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    var v=$("cv");v.srcObject=camS;await v.play();$("cInfo").textContent="Apunta al QR o código de barras.";$("cdlg").showModal();
+    camT=setInterval(async function(){
+      try{var r=await det.detect(v);if(!r.length)return;var c=r[0].rawValue.trim(),now=Date.now();
+        if(c===lastC&&now-lastT<2500)return;lastC=c;lastT=now;
+        $("scan").value=c;var it=byCode(c);$("cInfo").textContent=it?it.name+" · "+it.cat+" · "+it.qty+" en stock":"No se encontró el código "+c;
+        if(navigator.vibrate)navigator.vibrate(60)}catch(e){}
+    },300);
+  }catch(e){camClose();alert("No se pudo abrir la cámara ("+e.message+"). Revisa el permiso de cámara del navegador.")}
+}
+function camClose(){clearInterval(camT);if(camS){camS.getTracks().forEach(function(t){t.stop()});camS=null}if($("cdlg").open)$("cdlg").close()}
+function camMove(d){var c=$("scan").value.trim();if(!c)return;var it=byCode(c);move(d);if(it)$("cInfo").textContent=it.name+": "+it.qty+" en stock"}
+$("camBtn").onclick=camOpen;$("cCls").onclick=camClose;$("cdlg").addEventListener("cancel",function(e){e.preventDefault();camClose()});
+$("cPlus").onclick=function(){camMove(1)};$("cMinus").onclick=function(){camMove(-1)};
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 $("cu").value=CFG.u;$("ck").value=CFG.k;render();status();sync();
 setInterval(sync,60000);window.addEventListener("online",sync);
