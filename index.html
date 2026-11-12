@@ -54,11 +54,8 @@ dialog.w{max-width:460px;text-align:left}dialog h2{margin-top:0}.sheet{display:f
 <dialog id="dlg">
   <h2 id="dName"></h2>
   <div class="mu" id="dCode"></div>
-  <div class="row" style="justify-content:center;margin-top:8px">
-    <button id="tQr" class="p s">QR</button><button id="tBc" class="s">Código de barras</button>
-  </div>
   <div id="qr"></div>
-  <div id="bc" hidden><svg id="bcSvg"></svg></div>
+  <div id="bc"><svg id="bcSvg"></svg></div>
   <div class="row noprint" style="justify-content:center">
     <button id="prn">Imprimir</button><button id="cls">Cerrar</button>
   </div>
@@ -187,10 +184,8 @@ function showCode(it){
   $("qr").innerHTML="";
   try{new QRCode($("qr"),{text:it.code,width:180,height:180})}catch(e){$("qr").textContent="No se pudo generar el QR."}
   try{JsBarcode("#bcSvg",it.code,{format:"CODE128",height:70,displayValue:true,margin:4})}catch(e){}
-  tab("qr");$("dlg").showModal();
+  $("qr").title="";$("dlg").showModal();
 }
-function tab(t){$("qr").hidden=t!=="qr";$("bc").hidden=t!=="bc";$("tQr").className="s"+(t==="qr"?" p":"");$("tBc").className="s"+(t==="bc"?" p":"")}
-$("tQr").onclick=function(){tab("qr")};$("tBc").onclick=function(){tab("bc")};
 $("cls").onclick=function(){$("dlg").close()};
 $("prn").onclick=function(){try{window.print()}catch(e){}};
 
