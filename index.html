@@ -73,7 +73,7 @@ dialog.w{max-width:460px;text-align:left}dialog h2{margin-top:0}.sheet{display:f
 <div class="row" style="margin-top:8px"><button id="cfgSave" class="p">Guardar y sincronizar</button><button id="syncNow">Sincronizar ahora</button></div>
 <div class="row" style="margin-top:8px"><button id="impBtn">Importar fotos de Drive</button><span class="mu" id="impMsg"></span></div>
 <h3>Este dispositivo</h3>
-<div class="row"><input id="dName" placeholder="Ej. Celular de Juan"><button id="dSave">Guardar nombre</button></div>
+<div class="row"><input id="devName" placeholder="Ej. Celular de Juan"><button id="devSave">Guardar nombre</button><span class="mu" id="devMsg"></span></div>
 <div class="mu" style="margin-top:6px">Este nombre aparece en la pestaña Dispositivos y en Movimientos de la hoja.</div>
 <h3>Categorías</h3>
 <div class="row"><input id="newCat" placeholder="Nueva categoría (ej. Cadenas, Dijes…)"><button id="addCat">Agregar</button></div>
@@ -281,8 +281,8 @@ if(!DEV.id){try{DEV.id=Array.from(crypto.getRandomValues(new Uint8Array(8))).map
 function devUa(){return devGuess()+" · "+(((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone)?"app instalada":"navegador")}
 function devP(){return {dev:DEV.id,dn:DEV.name,ua:devUa()}}
 function devQ(){return "&d="+encodeURIComponent(DEV.id)+"&n="+encodeURIComponent(DEV.name)+"&u="+encodeURIComponent(devUa())}
-$("dName").value=DEV.name;
-$("dSave").onclick=function(){DEV.name=$("dName").value.trim()||devGuess();try{localStorage.setItem("inv_dev",JSON.stringify(DEV))}catch(e){}$("dName").value=DEV.name;sync()};
+$("devName").value=DEV.name;
+$("devSave").onclick=function(){DEV.name=$("devName").value.trim()||devGuess();try{localStorage.setItem("inv_dev",JSON.stringify(DEV))}catch(e){}$("devName").value=DEV.name;$("devMsg").textContent="Guardado: "+DEV.name;sync()};
 $("ord").onchange=function(){try{localStorage.setItem("inv_ord",this.value)}catch(e){}render()};
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 try{$("ord").value=localStorage.getItem("inv_ord")||"c"}catch(e){}
