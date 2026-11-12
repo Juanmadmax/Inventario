@@ -47,7 +47,7 @@ dialog.w{max-width:460px;text-align:left}dialog h2{margin-top:0}.sheet{display:f
 <body>
 <div class="top"><div><h1>Inventario</h1><div class="mu" id="saveMsg"></div></div><div class="row"><button id="addBtn" class="p ib" title="Nuevo producto">+</button><button id="setBtn" class="ib" title="Ajustes">&#9881;</button></div></div>
 <div class="mu" id="sum" style="margin-bottom:10px"><span id="sRef">0</span> referencias · <span id="sUni">0</span> unidades · valor al costo <span id="sVal">$0</span></div>
-<div class="card"><div class="row"><input id="q" placeholder="Buscar por nombre o código"></div><div class="chips" id="chips"></div></div>
+<div class="card"><div class="row"><input id="q" placeholder="Buscar por nombre o código"><select id="ord" style="flex:none"><option value="c">Orden: código</option><option value="n">Orden: nombre</option><option value="s">Stock bajo primero</option></select></div><div class="chips" id="chips"></div></div>
 <div class="card"><div class="row"><input id="scan" placeholder="Escanear o escribir código y Enter" autocomplete="off"><button id="camBtn">Cámara</button><button id="scanMinus">Salida −1</button><button id="scanPlus" class="p">Entrada +1</button></div><div id="scanMsg" class="mu" style="margin-top:6px"></div></div>
 <div class="card"><div id="list"></div></div>
 
@@ -72,6 +72,9 @@ dialog.w{max-width:460px;text-align:left}dialog h2{margin-top:0}.sheet{display:f
 <div class="row"><input id="cu" placeholder="URL de la aplicación web (script)"><input id="ck" type="password" placeholder="Clave secreta"></div>
 <div class="row" style="margin-top:8px"><button id="cfgSave" class="p">Guardar y sincronizar</button><button id="syncNow">Sincronizar ahora</button></div>
 <div class="row" style="margin-top:8px"><button id="impBtn">Importar fotos de Drive</button><span class="mu" id="impMsg"></span></div>
+<h3>Este dispositivo</h3>
+<div class="row"><input id="dName" placeholder="Ej. Celular de Juan"><button id="dSave">Guardar nombre</button></div>
+<div class="mu" style="margin-top:6px">Este nombre aparece en la pestaña Dispositivos y en Movimientos de la hoja.</div>
 <h3>Categorías</h3>
 <div class="row"><input id="newCat" placeholder="Nueva categoría (ej. Cadenas, Dijes…)"><button id="addCat">Agregar</button></div>
 <div class="mu" style="margin-top:6px">Para eliminar una categoría vacía, mantén presionada su etiqueta en la lista (o clic derecho).</div>
@@ -105,8 +108,8 @@ function load(raw){try{var o=JSON.parse(raw);if(o.S)S=o.S;if(o.Q)Q=o.Q;if(o.CFG)
 async function sync(){
   if(busy||!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;
   try{
-    if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({k:CFG.k,ops:sent})});var j=await r.json();if(j.error)throw new Error(j.error);Q=Q.slice(sent.length)}
-    var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k));var d=await g.json();if(d.error)throw new Error(d.error);
+    if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);Q=Q.slice(sent.length)}
+    var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
     if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
     persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO"));
   }catch(e){status("Sin sincronizar ("+e.message+")")}
@@ -124,6 +127,7 @@ function render(){
   $("fCat").innerHTML=S.cats.map(function(c){return "<option>"+esc(c)+"</option>"}).join("");
   if(S.cats.indexOf(cur)>-1)$("fCat").value=cur;
   var list=S.items.filter(function(i){return (!filter||i.cat===filter)&&(!q||i.name.toLowerCase().indexOf(q)>-1||i.code.toLowerCase().indexOf(q)>-1)});
+  var od=$("ord").value;list.sort(function(a,b){if(od==="n")return a.name.localeCompare(b.name,"es",{numeric:true});if(od==="s")return (a.qty-b.qty)||a.code.localeCompare(b.code,"es",{numeric:true});return a.code.localeCompare(b.code,"es",{numeric:true})});
   list.forEach(function(i){
     var tag=i.qty<=0?' · <span class="low">Agotado</span>':(i.min>0&&i.qty<=i.min?' · <span class="low">Bajo</span>':'');
     h+='<div class="item"><div class="nm"><b>'+esc(i.name)+'</b><small>'+esc(i.code)+' · '+esc(i.cat)+' · '+money(i.price)+tag+'</small></div>'+
@@ -191,7 +195,7 @@ $("prn").onclick=function(){try{window.print()}catch(e){}};
 
 var PH={};
 function pid(s){s=(s||"").trim();var m=s.match(/\/d\/([\w-]+)/)||s.match(/[?&]id=([\w-]+)/);if(m)return m[1];return /^[\w-]{20,}$/.test(s)?s:""}
-function post(o){o.k=CFG.k;return fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(o)}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
+function post(o){o.k=CFG.k;Object.assign(o,devP());return fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(o)}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
 async function loadPh(ids,prog){
   var need=ids.filter(function(x,n){return !PH[x]&&ids.indexOf(x)===n});
   for(var i=0;i<need.length;i+=4){var j=await post({act:"photos",ids:need.slice(i,i+4)});Object.assign(PH,j.photos);if(prog)prog(Math.min(i+4,need.length),need.length)}
@@ -240,7 +244,7 @@ $("eSave").onclick=function(){
   var q=Math.max(0,Math.floor(+$("eQty").value||0)),oc=it.code,d=q-it.qty;
   it.code=nc;it.name=n;it.cat=$("eCat").value;it.price=+$("ePrice").value||0;it.cost=+$("eCost").value||0;it.min=+$("eMin").value||0;it.photo=ph;it.qty=q;
   op({t:"upd",code:oc,newCode:nc,name:n,cat:it.cat,price:it.price,cost:it.cost,min:it.min,photo:ph});
-  if(d)op({t:"mov",code:nc,d:d});
+  if(d)op({t:"mov",code:nc,d:d,adj:true});
   $("edlg").close();render();
 };
 var camQ=null,lastC="",lastT=0;
@@ -270,7 +274,18 @@ $("mCode").onclick=function(){$("mdlg").close();showCode(menuIt)};
 $("mDel").onclick=function(){$("mdlg").close();delItem(menuIt)};
 $("addBtn").onclick=function(){$("ndlg").showModal()};$("nCls").onclick=function(){$("ndlg").close()};
 $("setBtn").onclick=function(){$("sdlg").showModal()};$("sCls").onclick=function(){$("sdlg").close()};
+var DEV={id:"",name:""};
+try{DEV=JSON.parse(localStorage.getItem("inv_dev")||"null")||DEV}catch(e){}
+function devGuess(){var u=navigator.userAgent||"";return /iPhone|iPad/.test(u)?"iPhone":/Android/.test(u)?"Android":/Windows/.test(u)?"Windows":/Mac/.test(u)?"Mac":"Dispositivo"}
+if(!DEV.id){try{DEV.id=Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")}catch(e){DEV.id=Date.now().toString(36)+Math.random().toString(36).slice(2,8)}DEV.name=devGuess();try{localStorage.setItem("inv_dev",JSON.stringify(DEV))}catch(e){}}
+function devUa(){return devGuess()+" · "+(((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone)?"app instalada":"navegador")}
+function devP(){return {dev:DEV.id,dn:DEV.name,ua:devUa()}}
+function devQ(){return "&d="+encodeURIComponent(DEV.id)+"&n="+encodeURIComponent(DEV.name)+"&u="+encodeURIComponent(devUa())}
+$("dName").value=DEV.name;
+$("dSave").onclick=function(){DEV.name=$("dName").value.trim()||devGuess();try{localStorage.setItem("inv_dev",JSON.stringify(DEV))}catch(e){}$("dName").value=DEV.name;sync()};
+$("ord").onchange=function(){try{localStorage.setItem("inv_ord",this.value)}catch(e){}render()};
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
+try{$("ord").value=localStorage.getItem("inv_ord")||"c"}catch(e){}
 $("cu").value=CFG.u;$("ck").value=CFG.k;render();status();sync();
 setInterval(sync,60000);window.addEventListener("online",sync);
 $("syncNow").onclick=sync;
