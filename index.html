@@ -47,7 +47,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 </head>
 <body>
 <div class="top"><div><h1>Inventario</h1><div class="mu" id="saveMsg"></div></div><div class="row"><button id="addBtn" class="p ib" title="Nuevo producto">+</button><button id="setBtn" class="ib" title="Ajustes">&#9881;</button></div></div>
-<div class="row" style="margin-bottom:10px"><button id="tInv" class="p">Inventario</button><button id="tVen">Ventas a crédito</button></div>
+<div class="row" style="margin-bottom:10px"><button id="tInv" class="p">Inventario</button><button id="tVen">Ventas</button></div>
 <div id="secInv">
 <div class="mu" id="sum" style="margin-bottom:10px"><span id="sRef">0</span> referencias · <span id="sUni">0</span> unidades · valor al costo <span id="sVal">$0</span></div>
 <div class="card"><div class="row"><input id="q" placeholder="Buscar por nombre o código"><select id="ord" style="flex:none"><option value="c">Orden: código</option><option value="n">Orden: nombre</option><option value="s">Stock bajo primero</option></select></div><div class="chips" id="chips"></div></div>
@@ -56,7 +56,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 </div>
 <div id="secVen" hidden>
 <div class="mu" id="vSum" style="margin-bottom:10px"></div>
-<div class="row" style="margin-bottom:10px"><button id="vNew" class="p">Nueva venta a crédito</button><button id="vCli">Nuevo cliente</button></div>
+<div class="row" style="margin-bottom:10px"><button id="vNew" class="p">Nueva venta</button><button id="vCli">Nuevo cliente</button></div>
 <div class="card"><h2>Clientes con saldo</h2><div id="vDeb"></div></div>
 <div class="card"><h2>Ventas recientes</h2><div id="vList"></div></div>
 </div>
@@ -88,6 +88,10 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <h3>Categorías</h3>
 <div class="row"><input id="newCat" placeholder="Nueva categoría (ej. Cadenas, Dijes…)"><button id="addCat">Agregar</button></div>
 <div class="mu" style="margin-top:6px">Para eliminar una categoría vacía, mantén presionada su etiqueta en la lista (o clic derecho).</div>
+<h3>Canales de venta</h3>
+<div class="row"><input id="chInp" placeholder="Ej. WhatsApp, Tienda, Instagram…"><button id="chAdd">Agregar</button></div>
+<div class="chips" id="chList"></div>
+<div class="mu" style="margin-top:6px">Toca un canal para quitarlo. Las ventas ya registradas conservan su canal.</div>
 <h3>Carpeta de material en Drive</h3>
 <div class="mu">Copia las fotos originales de los productos con stock, con una subcarpeta por categoría.</div>
 <div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cFol" class="p">Crear carpeta en Drive</button></div>
@@ -105,17 +109,18 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Teléfono (WhatsApp)<input id="kPhone" inputmode="tel"></label></div>
 <div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Notas<input id="kNote"></label></div>
 <div class="row ctr"><button id="kSave" class="p">Guardar</button><button id="kCls">Cancelar</button></div></dialog>
-<dialog id="vdlg" class="w"><h2>Nueva venta a crédito</h2>
-<div class="row"><label class="f" style="flex:2 1 170px">Cliente<select id="vCl"></select></label><button id="vCli2" class="s" style="align-self:flex-end">+ cliente</button><label class="f">Canal<select id="vCh"><option>WhatsApp</option><option>MercadoLibre</option><option>Marketplace</option><option>Presencial</option><option>Otro</option></select></label></div>
+<dialog id="vdlg" class="w"><h2>Nueva venta</h2>
+<div class="row"><label class="f" style="flex:2 1 170px">Cliente<select id="vCl"></select></label><button id="vCli2" class="s" style="align-self:flex-end">+ cliente</button><label class="f">Canal<select id="vCh"></select></label></div>
+<div class="row" style="margin-top:8px"><label class="f">Forma de pago<select id="vPay"><option value="c">A crédito</option><option value="k">De contado</option></select></label></div>
 <h3>Productos</h3>
 <div class="row"><input id="vProd" list="dlProd" placeholder="Busca por código o nombre" style="flex:2 1 180px"><button id="vAdd">Agregar</button></div><datalist id="dlProd"></datalist>
 <div id="vLines" style="margin-top:8px"></div>
 <div class="row" style="margin-top:8px;justify-content:space-between"><b>Total</b><b id="vTot">$0</b></div>
-<h3>Pago</h3>
+<div id="vCred"><h3>Pago</h3>
 <div class="row"><label class="f">Abono inicial<input id="vDown" type="number" min="0" value="0"></label><label class="f">N.º de cuotas<input id="vN" type="number" min="1" max="24" value="2"></label></div>
 <div class="row" style="margin-top:8px"><label class="f">Primera fecha<input id="vD0" type="date"></label><label class="f">Cada<select id="vInt"><option value="7">semana</option><option value="15" selected>quincena</option><option value="m">mes</option></select></label><button id="vGen" style="align-self:flex-end">Generar cuotas</button></div>
 <div id="vQuo" style="margin-top:8px"></div>
-<div class="mu" id="vDiff" style="margin-top:6px"></div>
+<div class="mu" id="vDiff" style="margin-top:6px"></div></div>
 <label class="f" style="margin-top:8px;display:block">Notas<input id="vNote"></label>
 <div class="row ctr"><button id="vSave" class="p">Guardar venta</button><button id="vCls">Cancelar</button></div></dialog>
 <dialog id="vddlg" class="w"><h2 id="vdTit"></h2><div id="vdBody"></div><div class="row ctr"><button id="vdAnul" style="color:var(--bad)">Anular venta</button><button id="vdCls">Cerrar</button></div></dialog>
@@ -123,7 +128,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <dialog id="pdlg"><h2 id="pName"></h2><div class="mu" id="pMsg"></div><img id="pImg" alt="" style="max-width:100%;border-radius:8px"><div class="row" style="justify-content:center;margin-top:8px"><button id="pCls">Cerrar</button></div></dialog>
 
 <script>
-var S={cats:["Cadenas","Aretes","Anillos","Dijes","Pulseras"],items:[],seq:1,clients:[],ventas:[]},filter="",KEY="inv_v1",dbDoc=null,timer=null;
+var S={cats:["Cadenas","Aretes","Anillos","Dijes","Pulseras"],items:[],seq:1,clients:[],ventas:[],canales:[]},filter="",KEY="inv_v1",dbDoc=null,timer=null;
 var $=function(i){return document.getElementById(i)};
 var money=function(n){return "$"+Math.round(n).toLocaleString("es-CO")};
 var esc=function(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML};
@@ -133,13 +138,13 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({S:S,Q:Q,CFG:CFG}
 function save(){persist();status()}
 function status(m){if(m)window._m=m;$("saveMsg").textContent=(window._m||"")+(Q.length?" · Pendientes: "+Q.length:" · Sin pendientes")}
 function op(o){o.id=Date.now()+"-"+Math.random().toString(36).slice(2,7);Q.push(o);save();clearTimeout(timer);timer=setTimeout(sync,800)}
-function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[]}if(o.Q)Q=o.Q;if(o.CFG)CFG=o.CFG}catch(e){}}
+function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[]}if(o.Q)Q=o.Q;if(o.CFG)CFG=o.CFG}catch(e){}}
 async function sync(){
   if(busy||!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;
   try{
     if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);Q=Q.slice(sent.length)}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
-    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
+    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
     persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO"));
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
@@ -161,7 +166,7 @@ function render(){
     var tag=i.qty<=0?' · <span class="low">Agotado</span>':(i.min>0&&i.qty<=i.min?' · <span class="low">Bajo</span>':'');
     h+='<div class="item"><div class="nm"><b>'+esc(i.name)+'</b><small>'+esc(i.code)+' · '+esc(i.cat)+' · '+money(i.price)+tag+'</small></div>'+
     '<div class="qty"><button class="s" data-a="m" data-id="'+i.id+'">−</button><strong class="'+(i.qty<=i.min?"low":"")+'">'+i.qty+'</strong><button class="s" data-a="p" data-id="'+i.id+'">+</button><button class="s" data-a="o" data-id="'+i.id+'" title="Más opciones">⋮</button></div></div>'});
-  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();
+  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();renderCh();
 }
 function find(id){return S.items.filter(function(i){return i.id===id})[0]}
 function byCode(c){c=c.trim().toLowerCase();return S.items.filter(function(i){return i.code.toLowerCase()===c})[0]}
@@ -323,21 +328,21 @@ function paidOf(v){return (v.abonos||[]).reduce(function(a,b){return a+b.amount}
 function saldoOf(v){return v.status==="Anulada"?0:v.total-paidOf(v)}
 function renderV(){
   var deb={},tot=0;
-  S.ventas.forEach(function(v){var s=saldoOf(v);if(s>0){tot+=s;(deb[v.clientId]=deb[v.clientId]||{name:v.client,s:0}).s+=s}});
+  S.ventas.forEach(function(v){var s=saldoOf(v);if(s>0){tot+=s;(deb[v.clientUid]=deb[v.clientUid]||{name:v.client,s:0}).s+=s}});
   var ks=Object.keys(deb).sort(function(a,b){return deb[b].s-deb[a].s}),h="";
-  ks.forEach(function(k){var c=S.clients.filter(function(x){return x.id===k})[0];h+='<div class="item"><div class="nm"><b>'+esc(deb[k].name)+'</b><small>'+esc((c&&c.phone)||"")+'</small></div><strong>'+money(deb[k].s)+'</strong></div>'});
+  ks.forEach(function(k){var c=S.clients.filter(function(x){return x.uid===k})[0];h+='<div class="item"><div class="nm"><b>'+esc(deb[k].name)+'</b><small>'+esc((c&&c.phone)||"")+'</small></div><strong>'+money(deb[k].s)+'</strong></div>'});
   $("vDeb").innerHTML=h||'<div class="mu">Nadie debe nada por ahora.</div>';
   $("vSum").textContent="Por cobrar: "+money(tot)+" · "+ks.length+" cliente"+(ks.length===1?"":"s");
-  var l="";S.ventas.slice(0,40).forEach(function(v){l+='<div class="item"><div class="nm"><b>'+esc(v.client)+'</b><small>'+esc(v.date)+' · '+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":"Saldo "+money(saldoOf(v)))+'</small></div><button class="s" data-v="'+esc(v.id)+'">Ver</button></div>'});
+  var l="";S.ventas.slice(0,40).forEach(function(v){l+='<div class="item"><div class="nm"><b>'+(v.id?'N.º '+esc(v.id)+' · ':'')+esc(v.client)+'</b><small>'+esc(v.date)+' · '+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":(saldoOf(v)>0?"Saldo "+money(saldoOf(v)):"Pagada"))+'</small></div><button class="s" data-v="'+esc(v.uid)+'">Ver</button></div>'});
   $("vList").innerHTML=l||'<div class="mu">Sin ventas todavía.</div>';
 }
-function fillCl(sel){$("vCl").innerHTML=S.clients.slice().sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>'}).join("");if(sel)$("vCl").value=sel}
+function fillCl(sel){$("vCl").innerHTML='<option value="">Cliente general (sin registrar)</option>'+S.clients.slice().sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<option value="'+esc(c.uid)+'">'+esc(c.name)+'</option>'}).join("");if(sel)$("vCl").value=sel;else if(S.clients.length)$("vCl").selectedIndex=1}
 function openCli(){["kName","kPhone","kNote"].forEach(function(i){$(i).value=""});$("kdlg").showModal()}
 $("vCli").onclick=openCli;$("vCli2").onclick=openCli;$("kCls").onclick=function(){$("kdlg").close()};
 $("kSave").onclick=function(){
   var n=$("kName").value.trim();if(!n)return;
-  var c={id:"C-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,phone:$("kPhone").value.trim(),notes:$("kNote").value.trim()};
-  S.clients.push(c);op({t:"cli",c:Object.assign({},c)});fillCl(c.id);$("kdlg").close();renderV();
+  var c={id:"",uid:"C-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,phone:$("kPhone").value.trim(),notes:$("kNote").value.trim()};
+  S.clients.push(c);op({t:"cli",c:Object.assign({},c)});fillCl(c.uid);$("kdlg").close();renderV();
 };
 function vTotal(){return VL.reduce(function(a,l){return a+l.qty*l.price},0)}
 function vDiffUpd(){var rest=vTotal()-(+$("vDown").value||0),sum=VQ.reduce(function(a,q){return a+q.amount},0);
@@ -353,8 +358,8 @@ $("vNew").onclick=function(){
   VL=[];VQ=[];fillCl();
   $("dlProd").innerHTML=S.items.filter(function(i){return i.qty>0}).map(function(i){return '<option value="'+esc(i.code)+' — '+esc(i.name)+'">'}).join("");
   ["vProd","vNote","vD0"].forEach(function(i){$(i).value=""});$("vDown").value=0;$("vN").value=2;
+  fillCh();$("vPay").value="c";$("vCred").hidden=false;
   vLinesRender();vQuoRender();
-  if(!S.clients.length){alert("Primero crea un cliente.");return}
   $("vdlg").showModal();
 };
 $("vCls").onclick=function(){$("vdlg").close()};
@@ -385,13 +390,14 @@ $("vGen").onclick=function(){
   vQuoRender();
 };
 $("vSave").onclick=function(){
-  var cli=S.clients.filter(function(c){return c.id===$("vCl").value})[0];
-  if(!cli){alert("Elige un cliente.");return}
+  var cash=$("vPay").value==="k",cli=S.clients.filter(function(c){return c.uid===$("vCl").value})[0];
+  if(!cli&&!cash){alert("Para vender a crédito elige un cliente (o crea uno con + cliente).");return}
+  if(!cli)cli={uid:"C-0",id:"0",name:"Cliente general"};
   if(!VL.length){alert("Agrega al menos un producto.");return}
   for(var i=0;i<VL.length;i++){var l=VL[i],p=byCode(l.code);
     if(!(l.qty>0)){alert("Revisa la cantidad de "+l.name+".");return}
     if(!p||l.qty>p.qty){alert("No hay stock suficiente de "+l.name+" (disponible: "+(p?p.qty:0)+").");return}}
-  var total=vTotal(),down=Math.max(0,+$("vDown").value||0),rest=total-down;
+  var total=vTotal(),down=cash?total:Math.max(0,+$("vDown").value||0),rest=total-down;
   if(down>total){alert("El abono inicial no puede ser mayor al total.");return}
   var sum=VQ.reduce(function(a,q){return a+q.amount},0);
   if(rest>0){
@@ -399,19 +405,19 @@ $("vSave").onclick=function(){
     if(sum!==rest){alert("Las cuotas deben sumar "+money(rest)+" (ahora suman "+money(sum)+").");return}
     for(var j=0;j<VQ.length;j++)if(!VQ[j].date){alert("Falta la fecha de la cuota "+(j+1)+".");return}
   }
-  var today=ymd(new Date()),id="V-"+today.replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,6);
-  var v={id:id,date:today,clientId:cli.id,client:cli.name,channel:$("vCh").value,notes:$("vNote").value.trim(),total:total,down:down,status:rest>0?"Pendiente":"Pagada",
-    items:VL.map(function(l){return {code:l.code,name:l.name,qty:l.qty,price:l.price}}),
-    cuotas:rest>0?VQ.map(function(q,i){return {id:id+"-"+(i+1),n:i+1,date:q.date,amount:q.amount,paid:0,status:"Pendiente"}}):[],
-    abonos:down>0?[{id:id+"-A0",date:today,amount:down,note:"Abono inicial"}]:[]};
+  var now=new Date(),today=ymd(now),uid="V-"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
+  var v={id:"",uid:uid,date:today+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),ts:now.toISOString(),clientUid:cli.uid,clientId:cli.id||"",client:cli.name,channel:$("vCh").value,cash:cash,notes:$("vNote").value.trim(),total:total,down:down,status:rest>0?"Pendiente":"Pagada",
+    items:VL.map(function(l){return {code:l.code,name:l.name,qty:l.qty,price:l.price,status:"Vigente"}}),
+    cuotas:rest>0?VQ.map(function(q,i){return {id:"",n:i+1,date:q.date,amount:q.amount,paid:0,status:"Pendiente"}}):[],
+    abonos:down>0?[{id:"",date:today,amount:down,note:cash?"Pago de contado":"Abono inicial"}]:[]};
   v.items.forEach(function(it){byCode(it.code).qty-=it.qty});
   S.ventas.unshift(v);op({t:"venta",v:JSON.parse(JSON.stringify(v))});
   $("vdlg").close();render();
 };
-$("vList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var v=S.ventas.filter(function(x){return x.id===b.dataset.v})[0];if(v)openDet(v)};
+$("vList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var v=S.ventas.filter(function(x){return x.uid===b.dataset.v})[0];if(v)openDet(v)};
 function openDet(v){
-  detV=v;$("vdTit").textContent=v.client+" · "+v.date;
-  $("vdBody").innerHTML='<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
+  detV=v;$("vdTit").textContent=(v.id?"N.º "+v.id+" · ":"")+v.client+" · "+v.date;
+  $("vdBody").innerHTML='<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
     v.items.map(function(i){return '<div class="mu">'+i.qty+' × '+esc(i.name)+' ('+esc(i.code)+') · '+money(i.price)+'</div>'}).join("")+
     '<div style="margin-top:8px"><b>Total '+money(v.total)+'</b> · Abonado '+money(paidOf(v))+' · <b>Saldo '+money(saldoOf(v))+'</b></div><h3>Cuotas</h3>'+
     (v.cuotas.map(function(q){return '<div class="mu">'+q.n+'. '+esc(q.date)+' · '+money(q.amount)+' · '+esc(q.status)+'</div>'}).join("")||'<div class="mu">Sin cuotas.</div>');
@@ -421,9 +427,14 @@ $("vdCls").onclick=function(){$("vddlg").close()};
 $("vdAnul").onclick=function(){
   var v=detV;if(!v||!confirm("¿Anular esta venta? El stock de los productos se devuelve."))return;
   v.items.forEach(function(it){var p=byCode(it.code);if(p)p.qty+=it.qty});
-  v.status="Anulada";v.cuotas.forEach(function(q){q.status="Anulada"});
-  op({t:"anular",id:v.id});$("vddlg").close();render();
+  var nw=new Date();v.canceled=ymd(nw)+" "+String(nw.getHours()).padStart(2,"0")+":"+String(nw.getMinutes()).padStart(2,"0");v.status="Anulada";v.cuotas.forEach(function(q){q.status="Anulada"});
+  op({t:"anular",sale:v.uid});$("vddlg").close();render();
 };
+function fillCh(){$("vCh").innerHTML='<option value="">Sin especificar</option>'+S.canales.map(function(c){return '<option>'+esc(c)+'</option>'}).join("")}
+function renderCh(){$("chList").innerHTML=S.canales.map(function(c){return '<span class="chip" data-c="'+esc(c)+'">'+esc(c)+' ✕</span>'}).join("")||'<span class="mu">Sin canales todavía.</span>'}
+$("chAdd").onclick=function(){var v=$("chInp").value.trim();if(!v||S.canales.indexOf(v)>-1)return;S.canales.push(v);$("chInp").value="";op({t:"canal",name:v});renderCh()};
+$("chList").onclick=function(e){var c=e.target.closest(".chip");if(!c)return;var n=c.dataset.c;if(!confirm("¿Quitar el canal «"+n+"»? Las ventas ya registradas lo conservan."))return;S.canales=S.canales.filter(function(x){return x!==n});op({t:"dcanal",name:n});renderCh()};
+$("vPay").onchange=function(){$("vCred").hidden=this.value==="k"};
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 try{$("ord").value=localStorage.getItem("inv_ord")||"c"}catch(e){}
 $("cu").value=CFG.u;$("ck").value=CFG.k;render();status();sync();
