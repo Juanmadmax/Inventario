@@ -43,10 +43,12 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 label.f{display:block;font-size:12px;color:var(--mu);flex:1 1 120px;min-width:0;text-align:left}label.f input,label.f select{width:100%;margin-top:3px;flex:none;display:block}
 dialog.w{max-width:460px;text-align:left}dialog h2{margin-top:0}.sheet{display:flex;flex-direction:column;gap:8px}.sheet button{padding:12px}.ctr{justify-content:center;margin-top:14px}
 button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.pend{color:var(--ac);font-weight:600}
 </style>
 </head>
 <body>
 <div class="top"><div><h1>Inventario</h1><div class="mu" id="saveMsg"></div></div><div class="row"><button id="addBtn" class="p ib" title="Nuevo producto">+</button><button id="setBtn" class="ib" title="Ajustes">&#9881;</button></div></div>
+<div id="rejBar" class="card" hidden style="border-color:var(--bad)"><div class="row" style="justify-content:space-between"><b class="low" id="rejTx"></b><button id="rejBtn" class="s">Ver</button></div></div>
 <div class="row" style="margin-bottom:10px"><button id="tInv" class="p">Inventario</button><button id="tVen">Ventas</button></div>
 <div id="secInv">
 <div class="mu" id="sum" style="margin-bottom:10px"><span id="sRef">0</span> referencias · <span id="sUni">0</span> unidades · valor al costo <span id="sVal">$0</span></div>
@@ -125,6 +127,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="row ctr"><button id="vSave" class="p">Guardar venta</button><button id="vCls">Cancelar</button></div></dialog>
 <dialog id="vddlg" class="w"><h2 id="vdTit"></h2><div id="vdBody"></div><div class="row ctr"><button id="vdAnul" style="color:var(--bad)">Anular venta</button><button id="vdCls">Cerrar</button></div></dialog>
 <dialog id="cdlg"><h2>Escanear con la cámara</h2><div id="reader" style="width:100%;border-radius:8px;overflow:hidden;background:#000"></div><div class="mu" id="cInfo" style="margin:8px 0">Apunta al QR o código de barras.</div><div class="row" style="justify-content:center"><button id="cMinus">Salida −1</button><button id="cPlus" class="p">Entrada +1</button><button id="cCls">Cerrar</button></div></dialog>
+<dialog id="rdlg" class="w"><h2>Operaciones rechazadas</h2><div class="mu">El servidor no aplicó estas operaciones en el Sheet. Si es una venta, vuelve a registrarla cuando corresponda y luego descarta este aviso.</div><div id="rBody"></div><div class="row ctr"><button id="rCls">Cerrar</button></div></dialog>
 <dialog id="pdlg"><h2 id="pName"></h2><div class="mu" id="pMsg"></div><img id="pImg" alt="" style="max-width:100%;border-radius:8px"><div class="row" style="justify-content:center;margin-top:8px"><button id="pCls">Cerrar</button></div></dialog>
 
 <script>
@@ -133,22 +136,62 @@ var $=function(i){return document.getElementById(i)};
 var money=function(n){return "$"+Math.round(n).toLocaleString("es-CO")};
 var esc=function(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML};
 
-var Q=[],CFG={u:"",k:""},busy=false;
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({S:S,Q:Q,CFG:CFG}))}catch(e){}}
+var Q=[],RJ=[],CFG={u:"",k:""},busy=false;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({S:S,Q:Q,CFG:CFG,RJ:RJ}))}catch(e){}}
 function save(){persist();status()}
 function status(m){if(m)window._m=m;$("saveMsg").textContent=(window._m||"")+(Q.length?" · Pendientes: "+Q.length:" · Sin pendientes")}
 function op(o){o.id=Date.now()+"-"+Math.random().toString(36).slice(2,7);Q.push(o);save();clearTimeout(timer);timer=setTimeout(sync,800)}
-function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[]}if(o.Q)Q=o.Q;if(o.CFG)CFG=o.CFG}catch(e){}}
+function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[]}if(o.Q)Q=o.Q;if(o.RJ)RJ=o.RJ;if(o.CFG)CFG=o.CFG}catch(e){}}
 async function sync(){
   if(busy||!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;
   try{
-    if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);Q=Q.slice(sent.length)}
+    var note="";if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);var nr=applyRes(sent,j);persist();if(nr)note+=" · "+nr+" rechazada(s): revisa el aviso";if(j.logError)note+=" · aviso: no se pudo escribir el registro de movimientos"}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
     if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
-    persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO"));
+    persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO")+note);
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
 }
+function applyRes(sent,j){
+  var res={},gone={},nr=0;
+  (j.results||[]).forEach(function(x){res[x.id]=x});
+  sent.forEach(function(o){
+    var x=j.results?res[o.id]:{st:"ok"};
+    if(!x)x={st:"error",msg:"el servidor no respondió por esta operación"};
+    if(x.st==="ok"){
+      gone[o.id]=1;
+      if(o.t==="venta"&&o.v){var v=S.ventas.filter(function(s){return s.uid===o.v.uid})[0];if(v){v.conf=true;if(x.num)v.id=String(x.num)}}
+    }else if(x.st==="rejected"){gone[o.id]=1;nr++;rechazar(o,x,false)}
+    else{o.tries=(o.tries||0)+1;if(o.tries>=3){gone[o.id]=1;nr++;rechazar(o,x,true)}}
+  });
+  Q=Q.filter(function(o){return !gone[o.id]});
+  return nr;
+}
+function rechazar(o,x,tec){
+  var it={t:o.t,ts:new Date().toISOString(),motivo:tec?"error":(x.motivo||""),msg:x.msg||"",detalle:x.detalle||[],tec:!!tec};
+  if(o.t==="venta"&&o.v){
+    var v=S.ventas.filter(function(s){return s.uid===o.v.uid})[0];
+    if(v){v.items.forEach(function(i){var p=byCode(i.code);if(p)p.qty+=i.qty});S.ventas=S.ventas.filter(function(s){return s!==v})}
+    it.venta={client:o.v.client,date:o.v.date,total:o.v.total,items:o.v.items.map(function(i){return {code:i.code,name:i.name,qty:i.qty,price:i.price}})};
+  }else it.desc=o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
+  RJ.push(it);
+}
+function renderRej(){
+  var n=RJ.length;$("rejBar").hidden=!n;
+  $("rejTx").textContent=n+(n===1?" operación rechazada por el servidor":" operaciones rechazadas por el servidor");
+  $("rBody").innerHTML=RJ.map(function(it,ix){
+    var h='<div class="item"><div class="nm">';
+    if(it.venta){h+='<b>Venta a '+esc(it.venta.client)+' · '+money(it.venta.total)+'</b><small>'+esc(it.venta.date)+'</small>'+it.venta.items.map(function(i){return '<small>'+i.qty+' × '+esc(i.name)+' ('+esc(i.code)+')</small>'}).join("")}
+    else h+='<b>Operación no aplicada</b><small>'+esc(it.desc||it.t)+'</small>';
+    if(it.motivo==="stock")h+=it.detalle.map(function(d){return '<small class="low">'+esc(d.name)+' ('+esc(d.code)+'): '+(d.existe===false?'ya no existe en el inventario':'pediste '+d.pedido+', hay '+d.disponible)+'</small>'}).join("");
+    else if(it.tec)h+='<small class="low">Error del servidor tras varios intentos: '+esc(it.msg)+'</small>';
+    else h+='<small class="low">'+esc(it.msg||"Rechazada")+'</small>';
+    return h+'</div><button class="s" data-r="'+ix+'">Descartar</button></div>';
+  }).join("")||'<div class="mu">No hay operaciones rechazadas.</div>';
+}
+$("rejBtn").onclick=function(){renderRej();$("rdlg").showModal()};
+$("rCls").onclick=function(){$("rdlg").close()};
+$("rBody").onclick=function(e){var b=e.target.closest("button");if(!b)return;RJ.splice(+b.dataset.r,1);persist();renderRej();if(!RJ.length&&$("rdlg").open)$("rdlg").close()};
 function render(){
   var q=$("q").value.toLowerCase(),h="",units=0,val=0;
   S.items.forEach(function(i){units+=i.qty;val+=i.qty*i.cost});
@@ -166,7 +209,7 @@ function render(){
     var tag=i.qty<=0?' · <span class="low">Agotado</span>':(i.min>0&&i.qty<=i.min?' · <span class="low">Bajo</span>':'');
     h+='<div class="item"><div class="nm"><b>'+esc(i.name)+'</b><small>'+esc(i.code)+' · '+esc(i.cat)+' · '+money(i.price)+tag+'</small></div>'+
     '<div class="qty"><button class="s" data-a="m" data-id="'+i.id+'">−</button><strong class="'+(i.qty<=i.min?"low":"")+'">'+i.qty+'</strong><button class="s" data-a="p" data-id="'+i.id+'">+</button><button class="s" data-a="o" data-id="'+i.id+'" title="Más opciones">⋮</button></div></div>'});
-  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();renderCh();
+  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();renderCh();renderRej();
 }
 function find(id){return S.items.filter(function(i){return i.id===id})[0]}
 function byCode(c){c=c.trim().toLowerCase();return S.items.filter(function(i){return i.code.toLowerCase()===c})[0]}
@@ -333,7 +376,7 @@ function renderV(){
   ks.forEach(function(k){var c=S.clients.filter(function(x){return x.uid===k})[0];h+='<div class="item"><div class="nm"><b>'+esc(deb[k].name)+'</b><small>'+esc((c&&c.phone)||"")+'</small></div><strong>'+money(deb[k].s)+'</strong></div>'});
   $("vDeb").innerHTML=h||'<div class="mu">Nadie debe nada por ahora.</div>';
   $("vSum").textContent="Por cobrar: "+money(tot)+" · "+ks.length+" cliente"+(ks.length===1?"":"s");
-  var l="";S.ventas.slice(0,40).forEach(function(v){l+='<div class="item"><div class="nm"><b>'+(v.id?'N.º '+esc(v.id)+' · ':'')+esc(v.client)+'</b><small>'+esc(v.date)+' · '+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":(saldoOf(v)>0?"Saldo "+money(saldoOf(v)):"Pagada"))+'</small></div><button class="s" data-v="'+esc(v.uid)+'">Ver</button></div>'});
+  var l="";S.ventas.slice(0,40).forEach(function(v){l+='<div class="item"><div class="nm"><b>'+(v.id?'N.º '+esc(v.id)+' · ':'')+esc(v.client)+'</b><small>'+esc(v.date)+' · '+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":(saldoOf(v)>0?"Saldo "+money(saldoOf(v)):"Pagada"))+(v.conf===false?' · <span class="pend">Sin confirmar</span>':'')+'</small></div><button class="s" data-v="'+esc(v.uid)+'">Ver</button></div>'});
   $("vList").innerHTML=l||'<div class="mu">Sin ventas todavía.</div>';
 }
 function fillCl(sel){$("vCl").innerHTML='<option value="">Cliente general (sin registrar)</option>'+S.clients.slice().sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<option value="'+esc(c.uid)+'">'+esc(c.name)+'</option>'}).join("");if(sel)$("vCl").value=sel;else if(S.clients.length)$("vCl").selectedIndex=1}
@@ -406,7 +449,7 @@ $("vSave").onclick=function(){
     for(var j=0;j<VQ.length;j++)if(!VQ[j].date){alert("Falta la fecha de la cuota "+(j+1)+".");return}
   }
   var now=new Date(),today=ymd(now),uid="V-"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
-  var v={id:"",uid:uid,date:today+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),ts:now.toISOString(),clientUid:cli.uid,clientId:cli.id||"",client:cli.name,channel:$("vCh").value,cash:cash,notes:$("vNote").value.trim(),total:total,down:down,status:rest>0?"Pendiente":"Pagada",
+  var v={id:"",uid:uid,conf:false,date:today+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),ts:now.toISOString(),clientUid:cli.uid,clientId:cli.id||"",client:cli.name,channel:$("vCh").value,cash:cash,notes:$("vNote").value.trim(),total:total,down:down,status:rest>0?"Pendiente":"Pagada",
     items:VL.map(function(l){return {code:l.code,name:l.name,qty:l.qty,price:l.price,status:"Vigente"}}),
     cuotas:rest>0?VQ.map(function(q,i){return {id:"",n:i+1,date:q.date,amount:q.amount,paid:0,status:"Pendiente"}}):[],
     abonos:down>0?[{id:"",date:today,amount:down,note:cash?"Pago de contado":"Abono inicial"}]:[]};
@@ -417,15 +460,15 @@ $("vSave").onclick=function(){
 $("vList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var v=S.ventas.filter(function(x){return x.uid===b.dataset.v})[0];if(v)openDet(v)};
 function openDet(v){
   detV=v;$("vdTit").textContent=(v.id?"N.º "+v.id+" · ":"")+v.client+" · "+v.date;
-  $("vdBody").innerHTML='<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
+  $("vdBody").innerHTML=(v.conf===false?'<div class="mu pend">Sin confirmar: el servidor aún no ha aceptado esta venta. No se puede anular hasta que se confirme.</div>':'')+'<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
     v.items.map(function(i){return '<div class="mu">'+i.qty+' × '+esc(i.name)+' ('+esc(i.code)+') · '+money(i.price)+'</div>'}).join("")+
     '<div style="margin-top:8px"><b>Total '+money(v.total)+'</b> · Abonado '+money(paidOf(v))+' · <b>Saldo '+money(saldoOf(v))+'</b></div><h3>Cuotas</h3>'+
     (v.cuotas.map(function(q){return '<div class="mu">'+q.n+'. '+esc(q.date)+' · '+money(q.amount)+' · '+esc(q.status)+'</div>'}).join("")||'<div class="mu">Sin cuotas.</div>');
-  $("vdAnul").hidden=v.status==="Anulada";$("vddlg").showModal();
+  $("vdAnul").hidden=v.status==="Anulada"||v.conf===false;$("vddlg").showModal();
 }
 $("vdCls").onclick=function(){$("vddlg").close()};
 $("vdAnul").onclick=function(){
-  var v=detV;if(!v||!confirm("¿Anular esta venta? El stock de los productos se devuelve."))return;
+  var v=detV;if(!v||v.conf===false||!confirm("¿Anular esta venta? El stock de los productos se devuelve."))return;
   v.items.forEach(function(it){var p=byCode(it.code);if(p)p.qty+=it.qty});
   var nw=new Date();v.canceled=ymd(nw)+" "+String(nw.getHours()).padStart(2,"0")+":"+String(nw.getMinutes()).padStart(2,"0");v.status="Anulada";v.cuotas.forEach(function(q){q.status="Anulada"});
   op({t:"anular",sale:v.uid});$("vddlg").close();render();
