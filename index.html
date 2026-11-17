@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Etapa 3 · Fase 3.0 (base de correcciones) — parte de index_etapa2_rev5_1.html. Cambios: aviso y bloqueo de ventas con corrección en curso, botón «Completar corrección pendiente», marcas de abonos/aplazamientos anulados, historial de correcciones. -->
+<!-- Etapa 3 completa (fases 3.0 a 3.4) — parte de index_etapa3_f0.html (Fase 3.0 validada). 3.1-3.2: correcciones financieras desde el detalle de venta. 3.3: pestaña Clientes, ficha, edición, sectores, estado. 3.4: pestaña Cartera (mora, compromisos, reporte por período). -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -51,7 +51,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="top"><div><h1>Inventario</h1><div class="mu" id="saveMsg"></div></div><div class="row"><button id="addBtn" class="p ib" title="Nuevo producto">+</button><button id="setBtn" class="ib" title="Ajustes">&#9881;</button></div></div>
 <div id="rejBar" class="card" hidden style="border-color:var(--bad)"><div class="row" style="justify-content:space-between"><b class="low" id="rejTx"></b><button id="rejBtn" class="s">Ver</button></div></div>
 <div id="prBar" class="card" hidden style="border-color:var(--ac)"><div class="row" style="justify-content:space-between"><b class="pend" id="prTx"></b><button id="prBtn" class="s">Ver</button></div></div>
-<div class="row" style="margin-bottom:10px"><button id="tInv" class="p">Inventario</button><button id="tVen">Ventas</button><button id="tCob">Cobros</button></div>
+<div class="row" style="margin-bottom:10px"><button id="tInv" class="p">Inventario</button><button id="tVen">Ventas</button><button id="tCob">Cobros</button><button id="tCli">Clientes</button><button id="tCar">Cartera</button></div>
 <div id="secInv">
 <div class="mu" id="sum" style="margin-bottom:10px"><span id="sRef">0</span> referencias · <span id="sUni">0</span> unidades · valor al costo <span id="sVal">$0</span></div>
 <div class="card"><div class="row"><input id="q" placeholder="Buscar por nombre o código"><select id="ord" style="flex:none"><option value="c">Orden: código</option><option value="n">Orden: nombre</option><option value="s">Stock bajo primero</option></select></div><div class="chips" id="chips"></div></div>
@@ -66,8 +66,18 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 </div>
 <div id="secCob" hidden>
 <div class="mu" id="cSum" style="margin-bottom:10px"></div>
-<div class="card"><div class="row"><input id="cQ" placeholder="Buscar por cliente o N.º de venta"></div></div>
+<div class="card"><div class="row"><input id="cQ" placeholder="Buscar por cliente o N.º de venta"><select id="cSec" style="flex:none"><option value="">Todos los sectores</option></select></div></div>
 <div id="cGroups"></div>
+</div>
+<div id="secCli" hidden>
+<div class="mu" id="kSum" style="margin-bottom:10px"></div>
+<div class="row" style="margin-bottom:10px"><button id="kNew" class="p">Nuevo cliente</button></div>
+<div class="card"><div class="row"><input id="kQ" placeholder="Buscar por nombre, teléfono o documento"><select id="kFS" style="flex:none"></select><select id="kFE" style="flex:none"><option value="">Activos e inactivos</option><option>Activo</option><option>Inactivo</option></select></div><div class="row" style="margin-top:8px"><label class="mu"><input id="kFSal" type="checkbox" style="flex:none"> Con saldo</label><label class="mu"><input id="kFMo" type="checkbox" style="flex:none"> Con mora</label></div></div>
+<div class="card"><div id="kList"></div></div>
+</div>
+<div id="secCar" hidden>
+<div class="card"><h2>Reporte de cartera por período</h2><div class="row"><label class="f">Desde<input id="rD1" type="date"></label><label class="f">Hasta<input id="rD2" type="date"></label><button id="rGo" class="p" style="align-self:flex-end">Calcular</button></div><div class="mu" style="margin-top:6px">Usa los datos corregidos (situación real). Las correcciones que afectan el período se listan al final.</div></div>
+<div id="rOut"></div>
 </div>
 
 <dialog id="dlg">
@@ -101,6 +111,10 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="row"><input id="chInp" placeholder="Ej. WhatsApp, Tienda, Instagram…"><button id="chAdd">Agregar</button></div>
 <div class="chips" id="chList"></div>
 <div class="mu" style="margin-top:6px">Toca un canal para quitarlo. Las ventas ya registradas conservan su canal.</div>
+<h3>Sectores o zonas</h3>
+<div class="row"><input id="secInp" placeholder="Ej. Norte, Centro, Vereda…"><button id="secAdd">Agregar</button></div>
+<div class="chips" id="secList"></div>
+<div class="mu" style="margin-top:6px">Toca un sector para quitarlo. Los clientes que lo tienen lo conservan.</div>
 <h3>Carpeta de material en Drive</h3>
 <div class="mu">Copia las fotos originales de los productos con stock, con una subcarpeta por categoría.</div>
 <div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cFol" class="p">Crear carpeta en Drive</button></div>
@@ -113,10 +127,13 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Código (vacío = automático)<input id="fCode"></label></div>
 <div class="row ctr"><button id="add" class="p">Guardar producto</button><button id="nCls">Cancelar</button></div></dialog>
 <dialog id="mdlg" class="w"><h2 id="mName"></h2><div class="sheet"><button id="mEdit">Editar</button><button id="mPhoto">Ver foto</button><button id="mCode">Código QR / barras</button><button id="mDel" style="color:var(--bad)">Eliminar</button><button id="mCls">Cerrar</button></div></dialog>
-<dialog id="kdlg" class="w"><h2>Nuevo cliente</h2>
-<div class="row"><label class="f" style="flex:1 1 100%">Nombre<input id="kName"></label></div>
-<div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Teléfono (WhatsApp)<input id="kPhone" inputmode="tel"></label></div>
+<dialog id="kdlg" class="w"><h2 id="kTit">Nuevo cliente</h2>
+<div class="row"><label class="f" style="flex:1 1 100%">Nombre completo<input id="kName"></label></div>
+<div class="row" style="margin-top:8px"><label class="f">Teléfono (WhatsApp)<input id="kPhone" inputmode="tel"></label><label class="f">Teléfono 2 (opcional)<input id="kTel2" inputmode="tel"></label></div>
+<div class="row" style="margin-top:8px"><label class="f">Documento (opcional)<input id="kDoc"></label><label class="f">Sector o zona<select id="kSec"></select></label></div>
+<div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Dirección (opcional)<input id="kDir"></label></div>
 <div class="row" style="margin-top:8px"><label class="f" style="flex:1 1 100%">Notas<input id="kNote"></label></div>
+<div id="kEstL" style="display:none"><div class="row" style="margin-top:8px"><label class="f">Estado<select id="kEst"><option>Activo</option><option>Inactivo</option></select></label></div><div class="mu" style="margin-top:6px">Los clientes con historial no se eliminan: márcalos como inactivos.</div></div>
 <div class="row ctr"><button id="kSave" class="p">Guardar</button><button id="kCls">Cancelar</button></div></dialog>
 <dialog id="vdlg" class="w"><h2>Nueva venta</h2>
 <div class="row"><label class="f" style="flex:2 1 170px">Cliente<select id="vCl"></select></label><button id="vCli2" class="s" style="align-self:flex-end">+ cliente</button><label class="f">Canal<select id="vCh"></select></label></div>
@@ -150,8 +167,11 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="mu" style="margin-top:6px">Aplazar no es un pago y no reduce la deuda. Se conservan la fecha original y cada cambio.</div>
 <div class="row ctr"><button id="apSave" class="p">Aplazar</button><button id="apCls">Cancelar</button></div></dialog>
 <dialog id="prdlg" class="w"><h2>Pendientes de revisión</h2><div class="mu">Estas operaciones fallaron 3 veces por errores técnicos. Sus datos se conservan completos. Pulsa Reintentar cuando haya conexión; no las registres de nuevo a mano, porque el servidor evita duplicados al reintentar.</div><div id="prBody"></div><div class="row ctr"><button id="prAll" class="p">Reintentar todas</button><button id="prCls">Cerrar</button></div></dialog>
+<dialog id="fdlg" class="w"><h2 id="fTit"></h2><div id="fBody"></div><div class="row ctr"><button id="fEdit">Editar</button><button id="fComp" class="p">Nuevo compromiso</button><button id="fCls">Cerrar</button></div></dialog>
+<dialog id="xdlg" class="w"><h2 id="xTit"></h2><div id="xBody"></div><label class="f" style="margin-top:8px;display:block">Motivo (obligatorio, mínimo 5 caracteres)<input id="xWhy" maxlength="300"></label><div class="mu" id="xPrev" style="margin-top:8px"></div><div class="row ctr"><button id="xSave" class="p">Confirmar corrección</button><button id="xCls">Cancelar</button></div></dialog>
+<dialog id="mcdlg" class="w"><h2>Nuevo compromiso de pago</h2><div class="mu" id="mcInfo"></div><div class="row" style="margin-top:8px"><label class="f">Venta<select id="mcV"></select></label><label class="f">Fecha comprometida<input id="mcF" type="date"></label></div><div class="row" style="margin-top:8px"><label class="f">Valor comprometido<input id="mcVal" type="number" min="1"></label></div><label class="f" style="margin-top:8px;display:block">Nota (opcional)<input id="mcN" maxlength="300"></label><div class="mu" style="margin-top:6px">Un compromiso no es un pago: no cambia saldos ni cuotas. Se cumple con los abonos que el cliente haga desde hoy hasta la fecha comprometida.</div><div class="row ctr"><button id="mcSave" class="p">Guardar</button><button id="mcCls">Cancelar</button></div></dialog>
 <script>
-var S={cats:["Cadenas","Aretes","Anillos","Dijes","Pulseras"],items:[],seq:1,clients:[],ventas:[],canales:[]},filter="",KEY="inv_v1",dbDoc=null,timer=null;
+var S={cats:["Cadenas","Aretes","Anillos","Dijes","Pulseras"],items:[],seq:1,clients:[],ventas:[],canales:[],sectores:[],compromisos:[]},filter="",KEY="inv_v1",dbDoc=null,timer=null;
 var $=function(i){return document.getElementById(i)};
 var money=function(n){return "$"+Math.round(n).toLocaleString("es-CO")};
 var esc=function(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML};
@@ -161,13 +181,13 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({S:S,Q:Q,CFG:CFG,
 function save(){persist();status()}
 function status(m){if(m)window._m=m;$("saveMsg").textContent=(window._m||"")+(Q.length?" · Pendientes: "+Q.length:" · Sin pendientes")}
 function op(o){o.id=Date.now()+"-"+Math.random().toString(36).slice(2,7);Q.push(o);save();clearTimeout(timer);timer=setTimeout(sync,800)}
-function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[]}if(o.Q)Q=o.Q;if(o.RJ)RJ=o.RJ;if(o.PR)PR=o.PR;if(o.CFG)CFG=o.CFG}catch(e){}}
+function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[];S.sectores=S.sectores||[];S.compromisos=S.compromisos||[]}if(o.Q)Q=o.Q;if(o.RJ)RJ=o.RJ;if(o.PR)PR=o.PR;if(o.CFG)CFG=o.CFG}catch(e){}}
 async function sync(){
   if(busy||!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;
   try{
     var note="";if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);var nr=applyRes(sent,j);persist();if(nr)note+=" · "+nr+" operación(es) con aviso: revísalas";if(j.logError)note+=" · aviso: no se pudo escribir el registro de movimientos"}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
-    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
+    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];S.sectores=d.sectores||[];S.compromisos=d.compromisos||[];var m=0;d.items.forEach(function(i){var n=parseInt(i.code.replace(/\D/g,""));if(n>m)m=n});S.seq=Math.max(S.seq,m+1)}
     persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO")+note);
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
@@ -193,7 +213,7 @@ function rechazar(o,x,tec){
     var v=S.ventas.filter(function(s){return s.uid===o.v.uid})[0];
     if(v){v.items.forEach(function(i){var p=byCode(i.code);if(p)p.qty+=i.qty});S.ventas=S.ventas.filter(function(s){return s!==v})}
     it.venta={client:o.v.client,date:o.v.date,total:o.v.total,items:o.v.items.map(function(i){return {code:i.code,name:i.name,qty:i.qty,price:i.price}})};
-  }else if(o.t==="abono"||o.t==="aplazar"||o.t==="anular"||o.t==="corrfin"){revertLocal(o);it.desc=opDesc(o)}else it.desc=o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
+  }else if(o.t==="abono"||o.t==="aplazar"||o.t==="anular"||o.t==="corrfin"||o.t==="corr"||o.t==="cliupd"||o.t==="comp"||o.t==="compx"||o.t==="sector"){revertLocal(o);it.desc=opDesc(o)}else it.desc=o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
   RJ.push(it);
 }
 function renderRej(){
@@ -229,7 +249,7 @@ function render(){
     var tag=i.qty<=0?' · <span class="low">Agotado</span>':(i.min>0&&i.qty<=i.min?' · <span class="low">Bajo</span>':'');
     h+='<div class="item"><div class="nm"><b>'+esc(i.name)+'</b><small>'+esc(i.code)+' · '+esc(i.cat)+' · '+money(i.price)+tag+'</small></div>'+
     '<div class="qty"><button class="s" data-a="m" data-id="'+i.id+'">−</button><strong class="'+(i.qty<=i.min?"low":"")+'">'+i.qty+'</strong><button class="s" data-a="p" data-id="'+i.id+'">+</button><button class="s" data-a="o" data-id="'+i.id+'" title="Más opciones">⋮</button></div></div>'});
-  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();renderCh();renderRej();renderPR();renderCob();
+  $("list").innerHTML=h||'<div class="mu">Sin productos todavía.</div>';renderV();renderCh();renderRej();renderPR();renderCob();renderSec();renderCli();if(!$("secCar").hidden)renderCar();
 }
 function find(id){return S.items.filter(function(i){return i.id===id})[0]}
 function byCode(c){c=c.trim().toLowerCase();return S.items.filter(function(i){return i.code.toLowerCase()===c})[0]}
@@ -382,8 +402,8 @@ $("devName").value=DEV.name;
 $("devSave").onclick=function(){DEV.name=$("devName").value.trim()||devGuess();try{localStorage.setItem("inv_dev",JSON.stringify(DEV))}catch(e){}$("devName").value=DEV.name;$("devMsg").textContent="Guardado: "+DEV.name;sync()};
 $("ord").onchange=function(){try{localStorage.setItem("inv_ord",this.value)}catch(e){}render()};
 var VL=[],VQ=[],detV=null;
-function setTab(t){$("secInv").hidden=t!=="i";$("secVen").hidden=t!=="v";$("secCob").hidden=t!=="c";$("tInv").className=t==="i"?"p":"";$("tVen").className=t==="v"?"p":"";$("tCob").className=t==="c"?"p":"";if(t==="v")renderV();if(t==="c")renderCob()}
-$("tInv").onclick=function(){setTab("i")};$("tVen").onclick=function(){setTab("v")};$("tCob").onclick=function(){setTab("c")};
+function setTab(t){var m={i:["secInv","tInv"],v:["secVen","tVen"],c:["secCob","tCob"],k:["secCli","tCli"],r:["secCar","tCar"]};Object.keys(m).forEach(function(k){$(m[k][0]).hidden=t!==k;$(m[k][1]).className=t===k?"p":""});if(t==="v")renderV();if(t==="c")renderCob();if(t==="k")renderCli();if(t==="r")renderCar()}
+$("tInv").onclick=function(){setTab("i")};$("tVen").onclick=function(){setTab("v")};$("tCob").onclick=function(){setTab("c")};$("tCli").onclick=function(){setTab("k")};$("tCar").onclick=function(){setTab("r")};
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function parseD(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2],12)}
 function nextD(s,i,u){var d=parseD(s);if(u==="m")d.setMonth(d.getMonth()+i);else d.setDate(d.getDate()+i*(+u));return ymd(d)}
@@ -399,13 +419,33 @@ function renderV(){
   var l="";S.ventas.slice(0,40).forEach(function(v){l+='<div class="item"><div class="nm"><b>'+(v.id?'N.º '+esc(v.id)+' · ':'')+esc(v.client)+'</b><small>'+esc(v.date)+' · '+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":(saldoOf(v)>0?"Saldo "+money(saldoOf(v)):"Pagada"))+(v.conf===false?' · <span class="pend">Sin confirmar</span>':'')+'</small></div><button class="s" data-v="'+esc(v.uid)+'">Ver</button></div>'});
   $("vList").innerHTML=l||'<div class="mu">Sin ventas todavía.</div>';
 }
-function fillCl(sel){$("vCl").innerHTML='<option value="">Cliente general (sin registrar)</option>'+S.clients.slice().sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<option value="'+esc(c.uid)+'">'+esc(c.name)+'</option>'}).join("");if(sel)$("vCl").value=sel;else if(S.clients.length)$("vCl").selectedIndex=1}
-function openCli(){["kName","kPhone","kNote"].forEach(function(i){$(i).value=""});$("kdlg").showModal()}
-$("vCli").onclick=openCli;$("vCli2").onclick=openCli;$("kCls").onclick=function(){$("kdlg").close()};
+function fillCl(sel){$("vCl").innerHTML='<option value="">Cliente general (sin registrar)</option>'+S.clients.filter(function(c){return c.estado!=="Inactivo"||c.uid===sel}).sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<option value="'+esc(c.uid)+'">'+esc(c.name)+'</option>'}).join("");if(sel)$("vCl").value=sel;else if(S.clients.length)$("vCl").selectedIndex=1}
+// Etapa 3 (3.3): el mismo diálogo crea o edita clientes (D6). Editar envía «cliupd» con los valores que se vieron (esperado).
+var KE=null;
+function openCli(uid){
+  KE=typeof uid==="string"?uid:null;var c=KE?cliBy(KE):null;
+  $("kTit").textContent=c?"Editar cliente":"Nuevo cliente";
+  $("kName").value=c?c.name:"";$("kPhone").value=c?(c.phone||""):"";$("kTel2").value=c?(c.tel2||""):"";$("kDoc").value=c?(c.doc||""):"";$("kDir").value=c?(c.dir||""):"";$("kNote").value=c?(c.notes||""):"";
+  fillSecSel($("kSec"),c?(c.sector||""):"");$("kEst").value=c?(c.estado||"Activo"):"Activo";$("kEstL").style.display=c?"block":"none";
+  $("kdlg").showModal();
+}
+$("vCli").onclick=function(){openCli()};$("vCli2").onclick=function(){openCli()};$("kCls").onclick=function(){$("kdlg").close()};
 $("kSave").onclick=function(){
-  var n=$("kName").value.trim();if(!n)return;
-  var c={id:"",uid:"C-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,phone:$("kPhone").value.trim(),notes:$("kNote").value.trim()};
-  S.clients.push(c);op({t:"cli",c:Object.assign({},c)});fillCl(c.uid);$("kdlg").close();renderV();
+  var n=$("kName").value.trim();if(!n){alert("El nombre es obligatorio.");return}
+  var f={nombre:n,tel:$("kPhone").value.trim(),tel2:$("kTel2").value.trim(),doc:$("kDoc").value.trim(),dir:$("kDir").value.trim(),sector:$("kSec").value,notas:$("kNote").value.trim(),estado:KE?$("kEst").value:"Activo"};
+  var dup=S.clients.filter(function(x){return x.uid!==KE&&x.uid!=="C-0"&&((f.tel&&x.phone===f.tel)||(f.doc&&x.doc===f.doc))});
+  if(dup.length&&!confirm("Ya existe otro cliente con el mismo teléfono o documento: "+dup.map(function(x){return x.name}).join(", ")+". ¿Guardar de todas formas?"))return;
+  if(!KE){
+    var c={id:"",uid:"C-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,phone:f.tel,notes:f.notas,tel2:f.tel2,doc:f.doc,dir:f.dir,sector:f.sector,estado:"Activo"};
+    S.clients.push(c);op({t:"cli",c:Object.assign({},c)});fillCl(c.uid);$("kdlg").close();render();return;
+  }
+  var c2=cliBy(KE);if(!c2)return;
+  var esp={nombre:c2.name,tel:c2.phone||"",tel2:c2.tel2||"",doc:c2.doc||"",dir:c2.dir||"",sector:c2.sector||"",notas:c2.notes||"",estado:c2.estado||"Activo"};
+  if(JSON.stringify(esp)===JSON.stringify(f)){$("kdlg").close();return}
+  var prev=Object.assign({},c2);
+  c2.name=f.nombre;c2.phone=f.tel;c2.tel2=f.tel2;c2.doc=f.doc;c2.dir=f.dir;c2.sector=f.sector;c2.notes=f.notas;c2.estado=f.estado;
+  op({t:"cliupd",c:{uid:KE,ref:uidOp("E"),campos:f,esperado:esp},prev:prev});
+  var ku=KE;$("kdlg").close();render();if($("fdlg").open)openFicha(ku);
 };
 function vTotal(){return VL.reduce(function(a,l){return a+l.qty*l.price},0)}
 function vDiffUpd(){var rest=vTotal()-(+$("vDown").value||0),sum=VQ.reduce(function(a,q){return a+q.amount},0);
@@ -482,13 +522,14 @@ $("vList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var
 function openDet(v){
   detV=v;$("vdTit").textContent=(v.id?"N.º "+v.id+" · ":"")+v.client+" · "+v.date;
   var t=ymd(new Date()),anul=v.status==="Anulada";
-  $("vdBody").innerHTML=(v.conf===false?'<div class="mu pend">Sin confirmar: el servidor aún no ha aceptado esta venta. No se puede anular ni cobrar hasta que se confirme.</div>':'')+(v.corrPend?'<div class="mu pend">Corrección en curso: cifras provisionales. Esta venta no admite cobros, aplazamientos ni anulación hasta que la corrección se complete. Pulsa «Completar corrección pendiente».</div>':'')+(!v.corrPend&&finEnCola(v)?'<div class="mu pend">Completando la corrección pendiente: esperando respuesta del servidor.</div>':'')+'<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
+  $("vdBody").innerHTML=(v.conf===false?'<div class="mu pend">Sin confirmar: el servidor aún no ha aceptado esta venta. No se puede anular ni cobrar hasta que se confirme.</div>':'')+(v.corrPend?'<div class="mu pend">Corrección en curso: cifras provisionales. Esta venta no admite cobros, aplazamientos ni anulación hasta que la corrección se complete. Pulsa «Completar corrección pendiente».</div>':'')+(!v.corrPend&&finEnCola(v)?'<div class="mu pend">Corrección enviada: esperando respuesta del servidor. La venta queda bloqueada hasta entonces.</div>':'')+'<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
     v.items.map(function(i){return '<div class="mu">'+i.qty+' × '+esc(i.name)+' ('+esc(i.code)+') · '+money(i.price)+'</div>'}).join("")+
     '<div style="margin-top:8px"><b>Total '+money(v.total)+'</b> · Abonado '+money(paidOf(v))+' · <b>Saldo '+money(saldoOf(v))+'</b>'+(anul?' · <b>Devuelto al cliente '+money(v.returned||0)+'</b>':'')+'</div><h3>Cuotas</h3>'+
     (v.cuotas.map(function(q){var late=!anul&&q.status!=="Pagada"&&q.status!=="Anulada"&&q.date<t;return '<div class="mu">'+q.n+'. '+esc(q.date)+(q.orig&&q.orig!==q.date?' (original '+esc(q.orig)+')':'')+' · '+money(q.amount)+' · pagado '+money(q.paid||0)+' · '+esc(q.status)+(late?' · <span class="low">vencida</span>':'')+'</div>'}).join("")||'<div class="mu">Sin cuotas.</div>')+
     '<h3>Abonos</h3>'+((v.abonos||[]).map(function(b){var ds=(b.dist||[]).map(function(x){return 'cuota '+x.n+': '+money(x.amount)}).join(", ");return '<div class="mu">'+esc(b.date)+' · '+money(b.amount)+' · '+esc(b.note||"")+((b.status&&b.status!=="Vigente")?' · '+esc(b.status)+(b.status==="Anulado"&&b.anuladoPor?' por corrección':''):'')+(b.origen?' · reemplazo de una corrección':'')+(ds?'<br>→ '+esc(ds):'')+(b.sinDist?'<br><b style="color:#b45309">⚠ Este pago NO está aplicado a las cuotas (distribución dañada en el servidor). Avisa para repararlo antes de registrar más abonos de esta venta.</b>':'')+'</div>'}).join("")||'<div class="mu">Sin abonos.</div>')+
     ((v.apl&&v.apl.length)?'<h3>Aplazamientos</h3>'+v.apl.map(function(a){return '<div class="mu">'+esc(a.at)+' · '+(a.tipo==="Corrección de fecha"?'corrección de fecha · ':'')+'cuota '+a.n+': '+esc(a.from)+' → '+esc(a.to)+(a.reason?' · '+esc(a.reason):'')+(a.status==="Anulado"?' · <span class="low">anulado</span>':'')+'</div>'}).join(""):'')+
     ((v.corr&&v.corr.length)?'<h3>Correcciones</h3>'+v.corr.map(function(c){return '<div class="mu">N.º '+esc(c.num)+' · '+esc(c.date)+' · '+esc(c.tipo)+(c.clase&&c.clase!=="Corrección por error"?' ('+esc(c.clase)+')':'')+(c.obj?' · '+esc(c.obj):'')+(c.antes||c.despues?'<br>'+esc(c.antes)+' → '+esc(c.despues):'')+(c.reason?'<br>Motivo: '+esc(c.reason):'')+(c.status==="En curso"?' · <span class="pend">en curso</span>':'')+'</div>'}).join(""):'');
+  $("vdBody").innerHTML+=corrBloque(v);                       // Etapa 3 (3.1-3.2): acciones de corrección
   var op2=canOpe(v)&&cuoPend(v).length>0;
   $("vdPay").hidden=!op2;$("vdApl").hidden=!op2;
   $("vdAnul").hidden=v.status==="Anulada"||v.conf===false||!!v.corrPend||finEnCola(v);
@@ -521,7 +562,7 @@ function cuoSaldo(q){return Math.max(0,q.amount-(+q.paid||0))}
 function cuoPend(v){return (v.cuotas||[]).filter(function(q){return q.status!=="Anulada"&&q.status!=="Pagada"&&cuoSaldo(q)>0.005}).sort(function(a,b){return a.n-b.n})}
 function canOpe(v){return !!v&&v.status!=="Anulada"&&v.conf!==false&&!v.corrPend&&!finEnCola(v)}
 // Etapa 3: una venta con corrección en curso (servidor) o con «Completar corrección pendiente» en cola queda bloqueada en pantalla
-function finEnCola(v){return Q.concat(PR.map(function(x){return x.op})).some(function(o){return o&&o.t==="corrfin"&&o.sale===v.uid})}
+function finEnCola(v){return Q.concat(PR.map(function(x){return x.op})).some(function(o){return o&&((o.t==="corrfin"&&o.sale===v.uid)||(o.t==="corr"&&o.c&&o.c.sale===v.uid))})}
 function daysLate(d){return Math.round((parseD(ymd(new Date()))-parseD(d))/86400000)}
 function opDesc(o){
   if(o.t==="venta"&&o.v)return "Venta a "+o.v.client+" · "+money(o.v.total);
@@ -529,6 +570,11 @@ function opDesc(o){
   if(o.t==="aplazar"&&o.p){var v2=saleBy(o.p.sale);return "Aplazamiento de "+o.p.items.length+" cuota(s)"+(v2?" · "+v2.client:"")}
   if(o.t==="anular"){var v3=saleBy(o.sale);return "Anulación de venta"+(v3?" · "+v3.client+(v3.id?" · N.º "+v3.id:""):"")}
   if(o.t==="corrfin"){var v4=saleBy(o.sale);return "Completar corrección pendiente"+(v4?" · "+v4.client+(v4.id?" · venta N.º "+v4.id:""):"")}
+  if(o.t==="corr"&&o.c){var v5=saleBy(o.c.sale);return "Corrección: "+o.c.tipo+(v5?" · "+v5.client+(v5.id?" · venta N.º "+v5.id:""):"")}
+  if(o.t==="cliupd"&&o.c)return "Edición del cliente "+((o.c.campos&&o.c.campos.nombre)||"");
+  if(o.t==="comp"&&o.m)return "Compromiso de pago · "+money(o.m.valor)+" · "+o.m.fecha;
+  if(o.t==="compx"&&o.m)return "Anulación de un compromiso de pago";
+  if(o.t==="sector")return "Sector «"+o.name+"»";
   return o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
 }
 // Efecto local (optimista) de un abono: suma lo pagado a cada cuota y recalcula estados. El servidor vuelve a validar todo.
@@ -545,6 +591,10 @@ function applyApl(v,p,dstr){
 // Deshace el efecto local de una operación que no se aplicó en el servidor
 function revertLocal(o){
   var v;
+  if(o.t==="cliupd"&&o.prev){var c0=cliBy(o.c.uid);if(c0)Object.assign(c0,o.prev);return}                 // Etapa 3
+  if(o.t==="comp"&&o.m){S.compromisos=S.compromisos.filter(function(m){return m.ref!==o.m.ref});return}
+  if(o.t==="compx"&&o.m){var m0=S.compromisos.filter(function(x){return x.ref===o.m.comp})[0];if(m0){m0.estado="";m0.motivoAnul=""}return}
+  if(o.t==="sector"){S.sectores=S.sectores.filter(function(x){return x!==o.name});return}
   if(o.t==="abono"&&o.a){
     v=saleBy(o.a.sale);if(!v)return;
     var i=-1;(v.abonos||[]).forEach(function(b,ix){if(b.uid===o.a.uid)i=ix});if(i<0)return;
@@ -586,11 +636,13 @@ $("prBody").onclick=function(e){
 
 // ---- Pantalla de cobros ----
 function renderCob(){
-  var t=ymd(new Date()),w=nextD(t,7,"1"),qx=($("cQ").value||"").trim().toLowerCase(),G={ven:[],hoy:[],sem:[],pro:[]},T={ven:0,hoy:0,sem:0,pro:0},sc=0;
+  var t=ymd(new Date()),w=nextD(t,7,"1"),qx=($("cQ").value||"").trim().toLowerCase(),G={ven:[],hoy:[],sem:[],pro:[]},T={ven:0,hoy:0,sem:0,pro:0},sc=0,fsec=$("cSec").value;
+  fillSecSel($("cSec"),fsec,"Todos los sectores");                // Etapa 3 (3.3): filtro por sector
   S.ventas.forEach(function(v){
     if(v.status==="Anulada")return;
     if(v.conf===false){if(saldoOf(v)>0)sc++;return}
     if(qx&&(v.client||"").toLowerCase().indexOf(qx)<0&&String(v.id).indexOf(qx)<0)return;
+    if(fsec&&cliSector(v.clientUid)!==fsec)return;
     cuoPend(v).forEach(function(q){var k=q.date<t?"ven":q.date===t?"hoy":q.date<=w?"sem":"pro",s=cuoSaldo(q);G[k].push({v:v,q:q,s:s});T[k]+=s});
   });
   $("cSum").textContent="Vencido "+money(T.ven)+" · Hoy "+money(T.hoy)+" · Próximos 7 días "+money(T.sem)+" · Más adelante "+money(T.pro)+(sc?" · "+sc+" venta(s) sin confirmar no incluida(s)":"");
@@ -686,6 +738,313 @@ $("apSave").onclick=function(){
 };
 $("vdPay").onclick=function(){if(detV)openPay(detV,0)};
 $("vdApl").onclick=function(){if(detV)openApl(detV,0)};
+
+// =====================================================================================================================
+// ===== ETAPA 3 (fases 3.1 a 3.4) — diseño claude/DISENO_ETAPA3.md v1.2 =====
+// =====================================================================================================================
+function cliBy(uid){return S.clients.filter(function(c){return c.uid===uid})[0]}
+function cliSector(uid){var c=cliBy(uid);return (c&&c.sector)||""}
+function isIni(b){return !b.uid||b.uid.indexOf("I-")===0}
+function vigAb(b){return b.status!=="Anulado"&&b.status!=="Devuelto"}
+function n2(x){return Math.round(+x*100)/100}
+function dateOf(s){return String(s||"").slice(0,10)}
+function fillSecSel(sel,val,todos){var o=(todos!==undefined?'<option value="">'+esc(todos)+'</option>':'<option value="">Sin sector</option>')+(S.sectores||[]).map(function(x){return '<option>'+esc(x)+'</option>'}).join("");if(val&&(S.sectores||[]).indexOf(val)<0)o+='<option>'+esc(val)+'</option>';sel.innerHTML=o;sel.value=val||""}
+
+// ---------- 3.1 / 3.2 Correcciones financieras (desde el detalle de la venta) ----------
+// Requisitos (D10 y 4.9): conexión, sin operaciones por sincronizar, sin pendientes de revisión de esa venta y sin corrección en curso.
+function corrBloqueo(v){
+  if(!v||v.status==="Anulada")return "La venta está anulada: no admite correcciones.";
+  if(v.conf===false)return "La venta aún no está confirmada por el servidor.";
+  if(v.corrPend)return "Hay una corrección en curso: complétala primero.";
+  if(finEnCola(v))return "Hay una corrección enviada esperando respuesta del servidor.";
+  if(!navigator.onLine)return "Las correcciones requieren conexión.";
+  if(Q.length)return "Hay operaciones pendientes de sincronizar: sincroniza antes de corregir.";
+  if(PR.some(function(x){var o=x.op;return o&&(o.sale===v.uid||(o.a&&o.a.sale===v.uid)||(o.p&&o.p.sale===v.uid)||(o.c&&o.c.sale===v.uid))}))return "Esta venta tiene operaciones en «Pendientes de revisión»: resuélvelas antes de corregir.";
+  return "";
+}
+function aplVig(v,n){return (v.apl||[]).filter(function(a){return a.n===n&&a.status!=="Anulado"}).sort(function(a,b){return (+a.num)-(+b.num)})}
+function cuoProt(q){return q.status==="Pagada"||!!q.prot}                // D11 y D15
+function corrBloque(v){
+  if(v.status==="Anulada"||v.conf===false)return "";
+  var h="",cs=(v.cuotas||[]).filter(function(q){return q.status!=="Anulada"});
+  (v.abonos||[]).filter(function(b){return b.id&&!isIni(b)&&b.status==="Vigente"}).forEach(function(b){
+    h+='<div class="item"><div class="nm"><b>Abono N.º '+esc(b.id)+' · '+money(b.amount)+'</b><small>'+esc(b.date)+(b.distTxt?' · '+esc(b.distTxt):'')+'</small></div><div class="row"><button class="s" data-x="aa" data-i="'+esc(b.id)+'">Anular</button><button class="s" data-x="ac" data-i="'+esc(b.id)+'">Corregir</button></div></div>'});
+  cs.forEach(function(q){
+    var vg=aplVig(v,q.n),u=vg[vg.length-1],prot=cuoProt(q);
+    if(u&&u.tipo!=="Corrección de fecha"&&!prot)h+='<div class="item"><div class="nm"><b>Aplazamiento de la cuota '+q.n+'</b><small>'+esc(u.from)+' → '+esc(u.to)+'</small></div><button class="s" data-x="ap" data-i="'+esc(u.num)+'">Anular</button></div>';
+    if(!prot&&!vg.some(function(a){return a.tipo!=="Corrección de fecha"}))h+='<div class="item"><div class="nm"><b>Cuota '+q.n+'</b><small>vence '+esc(q.date)+'</small></div><button class="s" data-x="cf" data-i="'+q.n+'">Corregir fecha</button></div>';
+  });
+  if(cs.length>=2)h+='<div class="row" style="margin-top:6px"><button class="s" data-x="rd">Redistribuir valores de cuotas</button></div>';
+  var notas=[];
+  if((v.abonos||[]).some(function(b){return isIni(b)&&vigAb(b)}))notas.push("El abono inicial y las ventas de contado no se corrigen en esta etapa.");
+  if(cs.some(cuoProt))notas.push("Las cuotas pagadas (o que estuvieron pagadas) no cambian de fecha.");
+  if(!h&&!notas.length)return "";
+  var bl=corrBloqueo(v);
+  return '<h3>Corregir</h3>'+(bl?'<div class="mu pend">'+esc(bl)+'</div>':h)+(notas.length?'<div class="mu" style="margin-top:6px">'+notas.map(esc).join(" ")+'</div>':'');
+}
+var XC=null;
+$("vdBody").onclick=function(e){var b=e.target.closest("button[data-x]");if(!b||!detV)return;openCorr(detV,b.dataset.x,b.dataset.i)};
+function openCorr(v,k,i){
+  var bl=corrBloqueo(v);if(bl){alert(bl);return}
+  XC={v:v,k:k};var h="",t="",act=v.cuotas.filter(function(q){return q.status!=="Anulada"});
+  if(k==="aa"||k==="ac"){
+    var b=(v.abonos||[]).filter(function(x){return x.id===i})[0];if(!b)return;XC.b=b;
+    t=(k==="aa"?"Anular abono N.º ":"Corregir abono N.º ")+b.id;
+    h='<div class="mu">'+esc(b.date)+' · '+money(b.amount)+' · distribución '+esc(b.distTxt||"")+'</div>';
+    if(k==="aa")h+='<div class="mu" style="margin-top:6px">Anular significa que este pago se registró por error y el dinero <b>no se recibió</b>. El saldo de la venta sube '+money(b.amount)+'. Si el dinero sí se recibió y luego se devolvió, no uses esta opción.</div>';
+    else{
+      var orig={};(b.dist||[]).forEach(function(x){orig[x.n]=(orig[x.n]||0)+x.amount});
+      h+='<div class="row" style="margin-top:8px"><label class="f">Nuevo valor<input id="xVal" type="number" min="1" value="'+b.amount+'"></label></div><h3>Distribución entre cuotas</h3>'+
+        act.map(function(q){var pend=n2(q.amount-((+q.paid||0)-(orig[q.n]||0)));return '<div class="row" style="margin-bottom:6px"><div class="nm"><b>Cuota '+q.n+'</b><small>admite hasta '+money(pend)+'</small></div><input class="xq" data-n="'+q.n+'" data-max="'+pend+'" type="number" min="0" value="'+(orig[q.n]||"")+'" style="width:110px;flex:none"></div>'}).join("")+
+        '<div class="mu" id="xDiff"></div><div class="mu" style="margin-top:6px">Se anula el abono original y se crea uno de reemplazo con la misma fecha. La fecha de un abono no se corrige aquí.</div>';
+    }
+  }else if(k==="ap"){
+    var a=(v.apl||[]).filter(function(x){return x.num===i})[0];if(!a)return;XC.a=a;
+    t="Anular aplazamiento de la cuota "+a.n;
+    h='<div class="mu">La cuota '+a.n+' volverá de '+esc(a.to)+' a <b>'+esc(a.from)+'</b>.'+(a.from<ymd(new Date())?' <span class="low">Esa fecha ya pasó: la cuota quedará vencida con '+daysLate(a.from)+' día(s) de mora.</span>':'')+'</div>';
+  }else if(k==="cf"){
+    var q=v.cuotas.filter(function(x){return x.n===+i})[0];if(!q)return;XC.q=q;
+    t="Corregir fecha de la cuota "+q.n;
+    h='<div class="mu">Vence '+esc(q.date)+(q.orig&&q.orig!==q.date?' (original '+esc(q.orig)+')':'')+'. Usa esta opción solo para errores de digitación; un cambio acordado con el cliente es un aplazamiento. La fecha original se conserva.</div><div class="row" style="margin-top:8px"><label class="f">Fecha correcta<input id="xDate" type="date" value="'+esc(q.date)+'"></label></div>';
+  }else if(k==="rd"){
+    t="Redistribuir valores de cuotas";
+    h='<div class="row"><label class="f">Tipo<select id="xCla"><option>Corrección por error</option><option>Reestructuración por acuerdo</option></select></label></div><div class="mu" style="margin-top:6px">La suma de las cuotas no cambia y ninguna cuota puede valer menos de lo ya pagado. Los abonos se conservan. Si el acuerdo también cambia fechas, regístralas aparte como aplazamientos.</div>'+
+      act.map(function(q){return '<div class="row" style="margin-bottom:6px"><div class="nm"><b>Cuota '+q.n+'</b><small>vence '+esc(q.date)+' · pagado '+money(q.paid||0)+'</small></div><input class="xr" data-n="'+q.n+'" data-min="'+(+q.paid||0)+'" type="number" min="0" value="'+q.amount+'" style="width:120px;flex:none"></div>'}).join("")+'<div class="mu" id="xDiff"></div>';
+  }else return;
+  $("xTit").textContent=t;$("xBody").innerHTML=h;$("xWhy").value="";
+  if($("vddlg").open)$("vddlg").close();$("xdlg").showModal();xPrev();
+}
+// Datos de la corrección según el diálogo: {err, tipo, clase, datos, esperado (lo que se ve en pantalla), prev (vista previa)}
+function xVals(){
+  var v=XC.v,k=XC.k;
+  if(k==="aa"){var b=XC.b;return {tipo:"Anular abono",datos:{abono:b.id},esperado:{valor:b.amount,estado:b.status,dist:b.distTxt||""},prev:"Abono N.º "+b.id+": "+money(b.amount)+" → Anulado. Saldo de la venta: "+money(saldoOf(v))+" → "+money(saldoOf(v)+b.amount)+"."}}
+  if(k==="ac"){
+    var b2=XC.b,val=n2(+$("xVal").value||0),al=[],s=0,err="";
+    $("xBody").querySelectorAll(".xq").forEach(function(inp){var x=n2(+inp.value||0);if(x<0)err="Hay valores negativos.";if(x>0){if(x>+inp.dataset.max+0.005)err="La cuota "+inp.dataset.n+" solo admite "+money(+inp.dataset.max)+".";al.push({n:+inp.dataset.n,amount:x});s+=x}});
+    $("xDiff").textContent="Distribuido "+money(s)+" de "+money(val)+(val>0&&Math.abs(s-val)<0.005?" ✓":"");
+    if(!err&&!(val>0))err="El nuevo valor debe ser mayor que cero (para quitar el abono usa Anular).";
+    if(!err&&!al.length)err="Distribuye el abono entre las cuotas.";
+    if(!err&&Math.abs(s-val)>0.005)err="Lo distribuido debe ser igual al nuevo valor.";
+    var txt=al.map(function(x){return x.n+"="+x.amount}).join(";");
+    if(!err&&Math.abs(val-b2.amount)<0.005&&txt===b2.distTxt)err="No hay cambios.";
+    var lim=saldoOf(v)+b2.amount;if(!err&&val>lim+0.005)err="El nuevo valor supera el saldo de la venta más este abono ("+money(lim)+").";
+    return {err:err,tipo:"Corregir abono",datos:{abono:b2.id,valor:val,dist:al},esperado:{valor:b2.amount,estado:b2.status,dist:b2.distTxt||""},prev:"Abono N.º "+b2.id+": "+money(b2.amount)+" ("+(b2.distTxt||"")+") → "+money(val)+" ("+txt+")."};
+  }
+  if(k==="ap"){var a=XC.a;return {tipo:"Anular aplazamiento",datos:{apl:a.num},esperado:{cuota:a.n,from:a.from,to:a.to},prev:"Cuota "+a.n+": "+a.to+" → "+a.from+"."}}
+  if(k==="cf"){var q=XC.q,nd=$("xDate").value,e2="";if(!nd)e2="Elige la fecha correcta.";else if(nd===q.date)e2="La cuota ya vence en esa fecha.";return {err:e2,tipo:"Corregir fecha de cuota",datos:{cuota:q.n,fecha:nd},esperado:{fecha:q.date},prev:"Cuota "+q.n+": "+q.date+" → "+(nd||"?")+"."}}
+  if(k==="rd"){
+    var vals=[],s0=0,s1=0,e3="",ch=[];
+    $("xBody").querySelectorAll(".xr").forEach(function(inp){var x=n2(+inp.value||0),q2=v.cuotas.filter(function(c){return c.n===+inp.dataset.n})[0];if(!(x>0))e3="Todas las cuotas deben valer más que cero.";else if(x<+inp.dataset.min-0.005)e3="La cuota "+inp.dataset.n+" no puede valer menos de lo pagado ("+money(+inp.dataset.min)+").";vals.push({n:+inp.dataset.n,valor:x});s0+=q2.amount;s1+=x;if(Math.abs(x-q2.amount)>0.005)ch.push("cuota "+q2.n+": "+money(q2.amount)+" → "+money(x))});
+    $("xDiff").textContent="Suma "+money(s1)+" (debe ser "+money(s0)+")"+(Math.abs(s1-s0)<0.005?" ✓":"");
+    if(!e3&&Math.abs(s1-s0)>0.005)e3="La suma debe seguir siendo "+money(s0)+".";
+    if(!e3&&!ch.length)e3="No hay cambios.";
+    return {err:e3,tipo:"Redistribuir cuotas",clase:$("xCla").value,datos:{valores:vals},esperado:{cuotas:v.cuotas.filter(function(c){return c.status!=="Anulada"}).map(function(c){return {n:c.n,valor:c.amount,pagado:+c.paid||0}})},prev:ch.join(" · ")};
+  }
+}
+function xPrev(){if(!XC)return;var r=xVals();$("xPrev").textContent=r.err?"⚠ "+r.err:r.prev}
+$("xBody").addEventListener("input",xPrev);$("xBody").addEventListener("change",xPrev);
+$("xCls").onclick=function(){XC=null;$("xdlg").close()};
+$("xSave").onclick=function(){
+  if(!XC)return;var v=XC.v,bl=corrBloqueo(v);if(bl){alert(bl);return}
+  var r=xVals(),m=$("xWhy").value.trim();
+  if(r.err){alert(r.err);return}
+  if(m.length<5){alert("Escribe el motivo de la corrección (mínimo 5 caracteres).");return}
+  if(!confirm("¿Confirmas esta corrección?\n"+r.prev))return;
+  op({t:"corr",c:{uid:uidOp("X"),tipo:r.tipo,clase:r.clase||"",sale:v.uid,motivo:m.slice(0,300),datos:r.datos,esperado:r.esperado}});
+  XC=null;$("xdlg").close();render();
+};
+
+// ---------- 3.3 Clientes: lista, ficha, sectores ----------
+function cliStats(uid){
+  var t=ymd(new Date()),o={comprado:0,abonado:0,saldo:0,vencidas:0,mora:0,vencido:0,aplVig:0,ventas:[]};
+  S.ventas.forEach(function(v){
+    if(v.clientUid!==uid)return;o.ventas.push(v);
+    if(v.status==="Anulada"||v.conf===false)return;
+    o.comprado+=v.total;o.abonado+=paidOf(v);o.saldo+=saldoOf(v);
+    cuoPend(v).forEach(function(q){if(q.date<t){o.vencidas++;o.vencido+=cuoSaldo(q);o.mora=Math.max(o.mora,daysLate(q.date))}});
+    (v.apl||[]).forEach(function(a){if(a.status!=="Anulado"&&(a.tipo||"Aplazamiento")==="Aplazamiento")o.aplVig++});
+  });
+  return o;
+}
+function renderCli(){
+  var q=($("kQ").value||"").trim().toLowerCase(),fs=$("kFS").value,fe=$("kFE").value,fsal=$("kFSal").checked,fmo=$("kFMo").checked,h="",n=0;
+  fillSecSel($("kFS"),fs,"Todos los sectores");
+  S.clients.filter(function(c){return c.uid!=="C-0"}).sort(function(a,b){return a.name.localeCompare(b.name,"es")}).forEach(function(c){
+    var st=cliStats(c.uid),est=c.estado||"Activo";
+    if(q&&(c.name+" "+(c.phone||"")+" "+(c.doc||"")).toLowerCase().indexOf(q)<0)return;
+    if(fs&&(c.sector||"")!==fs)return;if(fe&&est!==fe)return;if(fsal&&st.saldo<=0.005)return;if(fmo&&!st.vencidas)return;
+    n++;
+    h+='<div class="item"><div class="nm"><b>'+esc(c.name)+(est==="Inactivo"?' <span class="mu">(inactivo)</span>':'')+'</b><small>'+esc(c.sector||"Sin sector")+(c.phone?' · '+esc(c.phone):'')+'</small><small>Saldo '+money(st.saldo)+(st.vencidas?' · <span class="low">'+st.vencidas+' cuota(s) vencida(s) · '+st.mora+' día(s) de mora</span>':'')+'</small></div><button class="s" data-k="'+esc(c.uid)+'">Ficha</button></div>';
+  });
+  $("kList").innerHTML=h||'<div class="mu">Sin clientes con esos filtros.</div>';$("kSum").textContent=n+" cliente"+(n===1?"":"s");
+}
+$("kQ").oninput=renderCli;["kFS","kFE","kFSal","kFMo"].forEach(function(id){$(id).onchange=renderCli});
+$("kNew").onclick=function(){openCli()};
+$("kList").onclick=function(e){var b=e.target.closest("button[data-k]");if(b)openFicha(b.dataset.k)};
+$("cSec").onchange=renderCob;
+// Puntualidad histórica de cuotas pagadas (D7, D11, D15): fecha del abono que completó la cuota frente a su fecha vigente (o fecha protegida)
+function puntualidad(vs){
+  var o=[];
+  vs.forEach(function(v){
+    if(v.status==="Anulada"||v.conf===false)return;
+    var ab=(v.abonos||[]).filter(function(b){return vigAb(b)&&!isIni(b)}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(+a.id)-(+b.id)});
+    var red=(v.corr||[]).filter(function(c){return c.tipo==="Redistribuir cuotas"&&c.status==="Aplicada"}).map(function(c){return c.date}).sort()[0]||"";
+    (v.cuotas||[]).forEach(function(q){
+      var prot=q.status!=="Pagada"&&q.prot&&q.protDate;
+      if(q.status!=="Pagada"&&!prot)return;
+      var acc=0,pago="";
+      ab.forEach(function(b){
+        if(prot){if(red&&b.date>red)return;(b.dist||[]).forEach(function(x){if(x.n===q.n){acc+=x.amount;pago=b.date}});return}
+        if(pago)return;(b.dist||[]).forEach(function(x){if(x.n===q.n)acc+=x.amount});if(acc>=q.amount-0.005)pago=b.date;
+      });
+      if(!pago)return;
+      var ref=prot?q.protDate:q.date;
+      o.push({v:v,n:q.n,ref:ref,pago:dateOf(pago),atraso:Math.round((parseD(dateOf(pago))-parseD(ref))/86400000),prot:!!prot});
+    });
+  });
+  return o;
+}
+var FU=null;
+function openFicha(uid){
+  var c=cliBy(uid);if(!c)return;FU=uid;var st=cliStats(uid),t=ymd(new Date());
+  $("fTit").textContent=c.name;
+  var h='<div class="mu">'+[c.phone&&('Tel. '+esc(c.phone)),c.tel2&&('Tel. 2: '+esc(c.tel2)),c.doc&&('Doc. '+esc(c.doc)),c.dir&&esc(c.dir),esc(c.sector||"Sin sector"),esc(c.estado||"Activo"),c.created&&('Creado '+esc(c.created))].filter(Boolean).join(" · ")+(c.notes?'<br>'+esc(c.notes):'')+'</div>';
+  h+='<div style="margin-top:8px"><b>Comprado '+money(st.comprado)+'</b> · Abonado '+money(st.abonado)+' · <b>Saldo '+money(st.saldo)+'</b>'+(st.vencidas?' · <span class="low">'+st.vencidas+' cuota(s) vencida(s) · '+money(st.vencido)+' · mora máxima '+st.mora+' día(s)</span>':'')+(st.aplVig?' · '+st.aplVig+' aplazamiento(s) vigente(s)':'')+'</div>';
+  h+='<h3>Ventas</h3>'+(st.ventas.map(function(v){return '<div class="item"><div class="nm"><b>'+(v.id?'N.º '+esc(v.id)+' · ':'')+esc(v.date)+'</b><small>'+money(v.total)+' · '+(v.status==="Anulada"?"Anulada":(saldoOf(v)>0?"Saldo "+money(saldoOf(v)):"Pagada"))+(v.conf===false?' · <span class="pend">sin confirmar</span>':'')+(v.corrPend?' · <span class="pend">corrección en curso</span>':'')+'</small></div><button class="s" data-fv="'+esc(v.uid)+'">Ver</button></div>'}).join("")||'<div class="mu">Sin ventas.</div>');
+  var cp=[];st.ventas.forEach(function(v){if(v.status==="Anulada"||v.conf===false)return;cuoPend(v).forEach(function(q){cp.push({v:v,q:q})})});
+  cp.sort(function(a,b){return a.q.date<b.q.date?-1:a.q.date>b.q.date?1:0});
+  h+='<h3>Cuotas pendientes</h3>'+(cp.map(function(x){var l=x.q.date<t?daysLate(x.q.date):0;return '<div class="mu">Venta N.º '+esc(x.v.id)+' · cuota '+x.q.n+' · vence '+esc(x.q.date)+(x.q.orig&&x.q.orig!==x.q.date?' (original '+esc(x.q.orig)+')':'')+' · saldo '+money(cuoSaldo(x.q))+(l>0?' · <span class="low">'+l+' día(s) de mora</span>':'')+'</div>'}).join("")||'<div class="mu">Sin cuotas pendientes.</div>');
+  var pu=puntualidad(st.ventas);
+  if(pu.length)h+='<h3>Puntualidad de cuotas pagadas</h3>'+pu.map(function(x){return '<div class="mu">Venta N.º '+esc(x.v.id)+' · cuota '+x.n+' · vencía '+esc(x.ref)+(x.prot?' (fecha protegida)':'')+' · pagada el '+esc(x.pago)+' · '+(x.atraso>0?'<span class="low">'+x.atraso+' día(s) de atraso</span>':'a tiempo')+'</div>'}).join("");
+  var ab=[];st.ventas.forEach(function(v){(v.abonos||[]).forEach(function(b){ab.push({v:v,b:b})})});ab.sort(function(a,b){return a.b.date<b.b.date?1:-1});
+  h+='<h3>Abonos</h3>'+(ab.map(function(x){var b=x.b;return '<div class="mu">'+esc(b.date)+' · venta N.º '+esc(x.v.id)+' · '+money(b.amount)+(isIni(b)?' · inicial':'')+((b.status&&b.status!=="Vigente")?' · '+esc(b.status)+(b.status==="Anulado"&&b.anuladoPor?' por corrección':''):'')+(b.origen?' · reemplazo de una corrección':'')+'</div>'}).join("")||'<div class="mu">Sin abonos.</div>');
+  var ap=[];st.ventas.forEach(function(v){(v.apl||[]).forEach(function(a){ap.push({v:v,a:a})})});
+  if(ap.length)h+='<h3>Aplazamientos y correcciones de fecha</h3>'+ap.map(function(x){var a=x.a;return '<div class="mu">'+esc(a.at)+' · venta N.º '+esc(x.v.id)+' · '+(a.tipo==="Corrección de fecha"?'corrección de fecha · ':'')+'cuota '+a.n+': '+esc(a.from)+' → '+esc(a.to)+(a.status==="Anulado"?' · <span class="low">anulado</span>':'')+(a.reason?' · '+esc(a.reason):'')+'</div>'}).join("");
+  var co=[];st.ventas.forEach(function(v){(v.corr||[]).forEach(function(cc){co.push({v:v,c:cc})})});
+  if(co.length)h+='<h3>Correcciones</h3>'+co.map(function(x){var cc=x.c;return '<div class="mu">'+esc(cc.date)+' · venta N.º '+esc(x.v.id)+' · '+esc(cc.tipo)+(cc.clase&&cc.clase!=="Corrección por error"?' ('+esc(cc.clase)+')':'')+' · '+esc(cc.antes)+' → '+esc(cc.despues)+(cc.reason?' · '+esc(cc.reason):'')+(cc.status==="En curso"?' · <span class="pend">en curso</span>':'')+'</div>'}).join("");
+  var cm=cumplimiento(),lc=S.compromisos.filter(function(m){return m.cliUid===uid}).sort(function(a,b){return a.fecha<b.fecha?1:a.fecha>b.fecha?-1:0});
+  h+='<h3>Compromisos de pago</h3>'+(lc.map(function(m){return compHtml(m,cm[m.ref],true)}).join("")||'<div class="mu">Sin compromisos.</div>');
+  $("fBody").innerHTML=h;$("fComp").hidden=c.estado==="Inactivo"&&st.saldo<=0.005;if(!$("fdlg").open)$("fdlg").showModal();
+}
+$("fCls").onclick=function(){$("fdlg").close()};
+$("fEdit").onclick=function(){if(FU)openCli(FU)};
+$("fBody").onclick=function(e){
+  var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.fv){var v=saleBy(b.dataset.fv);if(v){$("fdlg").close();openDet(v)}}
+  else if(b.dataset.mx)anularComp(b.dataset.mx);
+};
+function renderSec(){$("secList").innerHTML=(S.sectores||[]).map(function(x){return '<span class="chip" data-c="'+esc(x)+'">'+esc(x)+' ✕</span>'}).join("")||'<span class="mu">Sin sectores todavía.</span>'}
+$("secAdd").onclick=function(){var v=$("secInp").value.trim();if(!v||S.sectores.indexOf(v)>-1)return;S.sectores.push(v);$("secInp").value="";op({t:"sector",name:v});render()};
+$("secList").onclick=function(e){var c=e.target.closest(".chip");if(!c)return;var n=c.dataset.c;if(!confirm("¿Quitar el sector «"+n+"»? Los clientes que lo tienen lo conservan."))return;S.sectores=S.sectores.filter(function(x){return x!==n});op({t:"dsector",name:n});render()};
+
+// ---------- 3.4 Cartera: compromisos, mora y reporte por período ----------
+// Cumplimiento de compromisos (diseño 6.5): asignación determinista calculada al leer; cada peso de cada abono se asigna como máximo una vez.
+function cumplimiento(){
+  var out={},hoy=ymd(new Date()),byCli={};
+  (S.compromisos||[]).forEach(function(m){if(m.estado==="Anulado")return;(byCli[m.cliUid]=byCli[m.cliUid]||[]).push(m)});
+  Object.keys(byCli).forEach(function(cli){
+    var abs=[];
+    S.ventas.forEach(function(v){if(v.clientUid!==cli||v.conf===false)return;(v.abonos||[]).forEach(function(b){if(!vigAb(b)||isIni(b)||!b.id)return;abs.push({v:v,b:b,rest:b.amount})})});
+    abs.sort(function(x,y){return x.b.date<y.b.date?-1:x.b.date>y.b.date?1:(+x.b.id)-(+y.b.id)});
+    byCli[cli].slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:((a.saleUid?0:1)-(b.saleUid?0:1))||((+a.num||0)-(+b.num||0))}).forEach(function(m){
+      var v=m.saleUid?saleBy(m.saleUid):null;
+      if(v&&v.status==="Anulada"){out[m.ref]={asig:0,estado:"Sin efecto",abonos:[]};return}
+      var asig=0,us=[];
+      abs.forEach(function(a){
+        if(asig>=m.valor-0.005||a.rest<=0.005)return;
+        if(m.saleUid&&a.v.uid!==m.saleUid)return;
+        if(a.b.date<m.reg||a.b.date>m.fecha+" 23:59")return;
+        var x=n2(Math.min(a.rest,m.valor-asig));a.rest=n2(a.rest-x);asig=n2(asig+x);us.push({id:a.b.id,x:x});
+      });
+      out[m.ref]={asig:asig,abonos:us,estado:asig>=m.valor-0.005?"Cumplido":(m.fecha>=hoy?"Pendiente":(asig>0.005?"Parcial":"Incumplido"))};
+    });
+  });
+  return out;
+}
+// Correcciones de abonos que recalcularon un compromiso (D8: nada cambia en silencio)
+function compCorr(m){
+  var o=[],d1=dateOf(m.reg),d2=m.fecha;
+  S.ventas.forEach(function(v){if(v.clientUid!==m.cliUid||(m.saleUid&&v.uid!==m.saleUid))return;(v.corr||[]).forEach(function(c){if(c.status==="Aplicada"&&(c.tipo==="Anular abono"||c.tipo==="Corregir abono")&&c.fa&&c.fa.abono&&c.fa.abono>=d1&&c.fa.abono<=d2)o.push(c)})});
+  return o;
+}
+function compHtml(m,r,acc){
+  r=r||{asig:0,estado:"",abonos:[]};
+  var est=m.estado==="Anulado"?"Anulado":(m.conf===false?"Sin confirmar":r.estado),cls=est==="Cumplido"?"":((est==="Incumplido"||est==="Parcial")?"low":"pend"),tr=compCorr(m);
+  return '<div class="item"><div class="nm"><b>'+esc(m.fecha)+' · '+money(m.valor)+' · <span class="'+cls+'">'+esc(est)+'</span></b><small>'+esc(m.client||"")+(m.ventaId?' · venta N.º '+esc(m.ventaId):' · general')+(m.nota?' · '+esc(m.nota):'')+(m.reg?' · registrado '+esc(m.reg):'')+'</small>'+
+    (m.estado!=="Anulado"&&est!=="Sin efecto"&&m.conf!==false?'<small>Asignado '+money(r.asig)+' de '+money(m.valor)+(r.abonos.length?' (abonos '+r.abonos.map(function(x){return 'N.º '+esc(x.id)+': '+money(x.x)}).join(", ")+')':'')+'</small>':'')+
+    (m.estado==="Anulado"?'<small>Anulado: '+esc(m.motivoAnul||"")+'</small>':'')+
+    (tr.length?'<small class="pend">Estado recalculado por '+tr.map(function(c){return 'la corrección N.º '+esc(c.num)+' del '+esc(dateOf(c.date))}).join(", ")+'</small>':'')+
+    '</div>'+(acc&&m.estado!=="Anulado"&&m.conf!==false?'<button class="s" data-mx="'+esc(m.ref)+'">Anular</button>':'')+'</div>';
+}
+$("fComp").onclick=function(){
+  var c=cliBy(FU);if(!c)return;
+  $("mcInfo").textContent=c.name;
+  var vs=S.ventas.filter(function(v){return v.clientUid===c.uid&&v.status!=="Anulada"&&v.conf!==false&&saldoOf(v)>0.005});
+  $("mcV").innerHTML='<option value="">General (cualquier venta del cliente)</option>'+vs.map(function(v){return '<option value="'+esc(v.uid)+'">N.º '+esc(v.id)+' · saldo '+money(saldoOf(v))+'</option>'}).join("");
+  var t=ymd(new Date());$("mcF").min=t;$("mcF").value=nextD(t,7,"1");$("mcVal").value="";$("mcN").value="";
+  $("mcdlg").showModal();
+};
+$("mcCls").onclick=function(){$("mcdlg").close()};
+$("mcSave").onclick=function(){
+  var c=cliBy(FU),f=$("mcF").value,val=n2(+$("mcVal").value||0),su=$("mcV").value,t=ymd(new Date());
+  if(!c)return;
+  if(!f||f<t){alert("La fecha comprometida no puede estar vacía ni ser anterior a hoy.");return}
+  if(!(val>0)){alert("Escribe el valor comprometido.");return}
+  var v=su?saleBy(su):null,ref=uidOp("M");
+  S.compromisos.push({num:"",reg:nowStr(),cliId:c.id,cliUid:c.uid,client:c.name,ventaId:v?v.id:"",saleUid:su,fecha:f,valor:val,nota:$("mcN").value.trim(),ref:ref,estado:"",conf:false});
+  op({t:"comp",m:{ref:ref,cli:c.uid,sale:su,fecha:f,valor:val,nota:$("mcN").value.trim().slice(0,300)}});
+  $("mcdlg").close();openFicha(c.uid);render();
+};
+function anularComp(ref){
+  var m=S.compromisos.filter(function(x){return x.ref===ref})[0];if(!m)return;
+  var mot=(prompt("Motivo de la anulación (mínimo 5 caracteres). Anula solo un compromiso registrado por error:")||"").trim();
+  if(!mot)return;if(mot.length<5){alert("El motivo debe tener al menos 5 caracteres.");return}
+  m.estado="Anulado";m.motivoAnul=mot;
+  op({t:"compx",m:{ref:uidOp("MX"),comp:ref,motivo:mot.slice(0,300)}});
+  if($("fdlg").open&&FU)openFicha(FU);render();
+}
+// Reporte de cartera por período (diseño 6.4) con los datos corregidos
+function reporte(d1,d2){
+  var R={esp:0,espN:0,otraOrig:0,recIni:0,recCuo:0,pend:0,cli:{},apl:[],aplAn:[],comp:[],corr:[]},h2=d2+" 23:59";
+  S.ventas.forEach(function(v){
+    if(v.status==="Anulada"||v.conf===false)return;
+    var ab=(v.abonos||[]).filter(vigAb);
+    ab.forEach(function(b){var d=dateOf(b.date);if(d>=d1&&d<=d2){if(isIni(b))R.recIni+=b.amount;else R.recCuo+=b.amount}});
+    (v.cuotas||[]).forEach(function(q){
+      if(q.status==="Anulada"||q.date<d1||q.date>d2)return;
+      R.esp+=q.amount;R.espN++;if(q.orig&&q.orig!==q.date)R.otraOrig++;
+      var apl=0;ab.forEach(function(b){if(isIni(b)||b.date>h2)return;(b.dist||[]).forEach(function(x){if(x.n===q.n)apl+=x.amount})});
+      apl=Math.min(apl,q.amount);R.pend+=q.amount-apl;
+      var k=v.clientUid||v.client,c=R.cli[k]=R.cli[k]||{name:v.client,esp:0,apl:0};c.esp+=q.amount;c.apl+=apl;
+    });
+    (v.apl||[]).forEach(function(a){var d=dateOf(a.at);if((a.tipo||"Aplazamiento")!=="Aplazamiento"||d<d1||d>d2)return;(a.status==="Anulado"?R.aplAn:R.apl).push({v:v,a:a})});
+    (v.corr||[]).forEach(function(c){if(c.status!=="Aplicada"||!c.fa)return;var fs=[].concat(c.fa.abono?[c.fa.abono]:[],c.fa.cuotas||[]);if(fs.some(function(f){return f>=d1&&f<=d2}))R.corr.push({v:v,c:c})});
+  });
+  var cm=cumplimiento();
+  (S.compromisos||[]).forEach(function(m){if(m.fecha>=d1&&m.fecha<=d2)R.comp.push({m:m,r:cm[m.ref]})});
+  return R;
+}
+function renderCar(){
+  if(!$("rD1").value){var t=new Date();$("rD1").value=ymd(new Date(t.getFullYear(),t.getMonth(),1));$("rD2").value=ymd(t)}
+  var d1=$("rD1").value,d2=$("rD2").value;
+  if(!d1||!d2||d1>d2){$("rOut").innerHTML='<div class="card mu">Elige un período válido.</div>';return}
+  var R=reporte(d1,d2),pag=[],par=[],no=[];
+  Object.keys(R.cli).forEach(function(k){var c=R.cli[k];(c.apl>=c.esp-0.005?pag:(c.apl>0.005?par:no)).push(c)});
+  var nm=function(l){return l.sort(function(a,b){return a.name.localeCompare(b.name,"es")}).map(function(c){return '<div class="mu">'+esc(c.name)+' · esperado '+money(c.esp)+' · aplicado '+money(c.apl)+'</div>'}).join("")||'<div class="mu">Nadie.</div>'};
+  var h='<div class="card"><h2>Resumen del '+esc(d1)+' al '+esc(d2)+'</h2>'+
+    '<div class="mu">Esperado (cuotas que vencen en el período, fecha vigente): <b>'+money(R.esp)+'</b> · '+R.espN+' cuota(s)'+(R.otraOrig?' · '+R.otraOrig+' con otra fecha original':'')+'</div>'+
+    '<div class="mu">Recibido en el período: <b>'+money(R.recIni+R.recCuo)+'</b> (abonos a cuotas '+money(R.recCuo)+' · abonos iniciales '+money(R.recIni)+')</div>'+
+    '<div class="mu">Pendiente por recaudar de lo esperado: <b>'+money(R.pend)+'</b></div></div>'+
+    '<div class="card"><h2>Pagaron completo · '+pag.length+'</h2>'+nm(pag)+'<h3>Abonaron parcialmente · '+par.length+'</h3>'+nm(par)+'<h3>No pagaron · '+no.length+'</h3>'+nm(no)+'</div>'+
+    '<div class="card"><h2>Aplazamientos solicitados · '+R.apl.length+'</h2>'+(R.apl.map(function(x){return '<div class="mu">'+esc(x.a.at)+' · '+esc(x.v.client)+' · venta N.º '+esc(x.v.id)+' · cuota '+x.a.n+': '+esc(x.a.from)+' → '+esc(x.a.to)+'</div>'}).join("")||'<div class="mu">Ninguno.</div>')+(R.aplAn.length?'<h3>Aplazamientos anulados después · '+R.aplAn.length+'</h3>'+R.aplAn.map(function(x){return '<div class="mu">'+esc(x.a.at)+' · '+esc(x.v.client)+' · cuota '+x.a.n+'</div>'}).join(""):'')+'</div>'+
+    '<div class="card"><h2>Compromisos con fecha en el período · '+R.comp.length+'</h2>'+(R.comp.map(function(x){return compHtml(x.m,x.r,false)}).join("")||'<div class="mu">Ninguno.</div>')+'</div>'+
+    '<div class="card"><h2>Correcciones que afectan el período · '+R.corr.length+'</h2>'+(R.corr.map(function(x){var c=x.c;return '<div class="mu">Corrección N.º '+esc(c.num)+' del '+esc(c.date)+' · '+esc(x.v.client)+' · venta N.º '+esc(x.v.id)+' · '+esc(c.tipo)+' · '+esc(c.antes)+' → '+esc(c.despues)+(c.reason?' · '+esc(c.reason):'')+'</div>'}).join("")||'<div class="mu">Ninguna.</div>')+'</div>';
+  var mo=S.clients.filter(function(c){return c.uid!=="C-0"}).map(function(c){var st=cliStats(c.uid);return {c:c,st:st}}).filter(function(x){return x.st.vencidas}).sort(function(a,b){return b.st.mora-a.st.mora});
+  h+='<div class="card"><h2>Mora actual · '+mo.length+' cliente(s)</h2>'+(mo.map(function(x){return '<div class="item"><div class="nm"><b>'+esc(x.c.name)+'</b><small>'+esc(x.c.sector||"Sin sector")+' · '+x.st.vencidas+' cuota(s) vencida(s) · '+money(x.st.vencido)+' · '+x.st.mora+' día(s) de mora máxima</small></div><button class="s" data-k="'+esc(x.c.uid)+'">Ficha</button></div>'}).join("")||'<div class="mu">Nadie está en mora.</div>')+'</div>';
+  $("rOut").innerHTML=h;
+}
+$("rGo").onclick=renderCar;
+$("rOut").onclick=function(e){var b=e.target.closest("button[data-k]");if(b)openFicha(b.dataset.k)};
 
 try{var raw=localStorage.getItem(KEY);if(raw)load(raw)}catch(e){}
 try{$("ord").value=localStorage.getItem("inv_ord")||"c"}catch(e){}
