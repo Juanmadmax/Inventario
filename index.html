@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Etapa 3 · Fase 3.0 (base de correcciones) — parte de index_etapa2_rev5_1.html. Cambios: aviso y bloqueo de ventas con corrección en curso, botón «Completar corrección pendiente», marcas de abonos/aplazamientos anulados, historial de correcciones. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -131,7 +132,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="mu" id="vDiff" style="margin-top:6px"></div></div>
 <label class="f" style="margin-top:8px;display:block">Notas<input id="vNote"></label>
 <div class="row ctr"><button id="vSave" class="p">Guardar venta</button><button id="vCls">Cancelar</button></div></dialog>
-<dialog id="vddlg" class="w"><h2 id="vdTit"></h2><div id="vdBody"></div><div class="row ctr"><button id="vdPay" class="p">Registrar abono</button><button id="vdApl">Aplazar cuotas</button><button id="vdAnul" style="color:var(--bad)">Anular venta</button><button id="vdCls">Cerrar</button></div></dialog>
+<dialog id="vddlg" class="w"><h2 id="vdTit"></h2><div id="vdBody"></div><div class="row ctr"><button id="vdPay" class="p">Registrar abono</button><button id="vdApl">Aplazar cuotas</button><button id="vdAnul" style="color:var(--bad)">Anular venta</button><button id="vdFin" class="p" hidden>Completar corrección pendiente</button><button id="vdCls">Cerrar</button></div></dialog>
 <dialog id="cdlg"><h2>Escanear con la cámara</h2><div id="reader" style="width:100%;border-radius:8px;overflow:hidden;background:#000"></div><div class="mu" id="cInfo" style="margin:8px 0">Apunta al QR o código de barras.</div><div class="row" style="justify-content:center"><button id="cMinus">Salida −1</button><button id="cPlus" class="p">Entrada +1</button><button id="cCls">Cerrar</button></div></dialog>
 <dialog id="rdlg" class="w"><h2>Operaciones rechazadas</h2><div class="mu">El servidor no aplicó estas operaciones en el Sheet. Si es una venta, vuelve a registrarla cuando corresponda y luego descarta este aviso.</div><div id="rBody"></div><div class="row ctr"><button id="rCls">Cerrar</button></div></dialog>
 <dialog id="pdlg"><h2 id="pName"></h2><div class="mu" id="pMsg"></div><img id="pImg" alt="" style="max-width:100%;border-radius:8px"><div class="row" style="justify-content:center;margin-top:8px"><button id="pCls">Cerrar</button></div></dialog>
@@ -192,7 +193,7 @@ function rechazar(o,x,tec){
     var v=S.ventas.filter(function(s){return s.uid===o.v.uid})[0];
     if(v){v.items.forEach(function(i){var p=byCode(i.code);if(p)p.qty+=i.qty});S.ventas=S.ventas.filter(function(s){return s!==v})}
     it.venta={client:o.v.client,date:o.v.date,total:o.v.total,items:o.v.items.map(function(i){return {code:i.code,name:i.name,qty:i.qty,price:i.price}})};
-  }else if(o.t==="abono"||o.t==="aplazar"||o.t==="anular"){revertLocal(o);it.desc=opDesc(o)}else it.desc=o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
+  }else if(o.t==="abono"||o.t==="aplazar"||o.t==="anular"||o.t==="corrfin"){revertLocal(o);it.desc=opDesc(o)}else it.desc=o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
   RJ.push(it);
 }
 function renderRej(){
@@ -481,16 +482,25 @@ $("vList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var
 function openDet(v){
   detV=v;$("vdTit").textContent=(v.id?"N.º "+v.id+" · ":"")+v.client+" · "+v.date;
   var t=ymd(new Date()),anul=v.status==="Anulada";
-  $("vdBody").innerHTML=(v.conf===false?'<div class="mu pend">Sin confirmar: el servidor aún no ha aceptado esta venta. No se puede anular ni cobrar hasta que se confirme.</div>':'')+'<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
+  $("vdBody").innerHTML=(v.conf===false?'<div class="mu pend">Sin confirmar: el servidor aún no ha aceptado esta venta. No se puede anular ni cobrar hasta que se confirme.</div>':'')+(v.corrPend?'<div class="mu pend">Corrección en curso: cifras provisionales. Esta venta no admite cobros, aplazamientos ni anulación hasta que la corrección se complete. Pulsa «Completar corrección pendiente».</div>':'')+(!v.corrPend&&finEnCola(v)?'<div class="mu pend">Completando la corrección pendiente: esperando respuesta del servidor.</div>':'')+'<div class="mu">'+esc(v.channel||"")+' · '+esc(v.status)+(v.canceled?' ('+esc(v.canceled)+')':'')+(v.notes?' · '+esc(v.notes):'')+'</div><h3>Productos</h3>'+
     v.items.map(function(i){return '<div class="mu">'+i.qty+' × '+esc(i.name)+' ('+esc(i.code)+') · '+money(i.price)+'</div>'}).join("")+
     '<div style="margin-top:8px"><b>Total '+money(v.total)+'</b> · Abonado '+money(paidOf(v))+' · <b>Saldo '+money(saldoOf(v))+'</b>'+(anul?' · <b>Devuelto al cliente '+money(v.returned||0)+'</b>':'')+'</div><h3>Cuotas</h3>'+
     (v.cuotas.map(function(q){var late=!anul&&q.status!=="Pagada"&&q.status!=="Anulada"&&q.date<t;return '<div class="mu">'+q.n+'. '+esc(q.date)+(q.orig&&q.orig!==q.date?' (original '+esc(q.orig)+')':'')+' · '+money(q.amount)+' · pagado '+money(q.paid||0)+' · '+esc(q.status)+(late?' · <span class="low">vencida</span>':'')+'</div>'}).join("")||'<div class="mu">Sin cuotas.</div>')+
-    '<h3>Abonos</h3>'+((v.abonos||[]).map(function(b){var ds=(b.dist||[]).map(function(x){return 'cuota '+x.n+': '+money(x.amount)}).join(", ");return '<div class="mu">'+esc(b.date)+' · '+money(b.amount)+' · '+esc(b.note||"")+((b.status&&b.status!=="Vigente")?' · '+esc(b.status):'')+(ds?'<br>→ '+esc(ds):'')+(b.sinDist?'<br><b style="color:#b45309">⚠ Este pago NO está aplicado a las cuotas (distribución dañada en el servidor). Avisa para repararlo antes de registrar más abonos de esta venta.</b>':'')+'</div>'}).join("")||'<div class="mu">Sin abonos.</div>')+
-    ((v.apl&&v.apl.length)?'<h3>Aplazamientos</h3>'+v.apl.map(function(a){return '<div class="mu">'+esc(a.at)+' · cuota '+a.n+': '+esc(a.from)+' → '+esc(a.to)+(a.reason?' · '+esc(a.reason):'')+'</div>'}).join(""):'');
+    '<h3>Abonos</h3>'+((v.abonos||[]).map(function(b){var ds=(b.dist||[]).map(function(x){return 'cuota '+x.n+': '+money(x.amount)}).join(", ");return '<div class="mu">'+esc(b.date)+' · '+money(b.amount)+' · '+esc(b.note||"")+((b.status&&b.status!=="Vigente")?' · '+esc(b.status)+(b.status==="Anulado"&&b.anuladoPor?' por corrección':''):'')+(b.origen?' · reemplazo de una corrección':'')+(ds?'<br>→ '+esc(ds):'')+(b.sinDist?'<br><b style="color:#b45309">⚠ Este pago NO está aplicado a las cuotas (distribución dañada en el servidor). Avisa para repararlo antes de registrar más abonos de esta venta.</b>':'')+'</div>'}).join("")||'<div class="mu">Sin abonos.</div>')+
+    ((v.apl&&v.apl.length)?'<h3>Aplazamientos</h3>'+v.apl.map(function(a){return '<div class="mu">'+esc(a.at)+' · '+(a.tipo==="Corrección de fecha"?'corrección de fecha · ':'')+'cuota '+a.n+': '+esc(a.from)+' → '+esc(a.to)+(a.reason?' · '+esc(a.reason):'')+(a.status==="Anulado"?' · <span class="low">anulado</span>':'')+'</div>'}).join(""):'')+
+    ((v.corr&&v.corr.length)?'<h3>Correcciones</h3>'+v.corr.map(function(c){return '<div class="mu">N.º '+esc(c.num)+' · '+esc(c.date)+' · '+esc(c.tipo)+(c.clase&&c.clase!=="Corrección por error"?' ('+esc(c.clase)+')':'')+(c.obj?' · '+esc(c.obj):'')+(c.antes||c.despues?'<br>'+esc(c.antes)+' → '+esc(c.despues):'')+(c.reason?'<br>Motivo: '+esc(c.reason):'')+(c.status==="En curso"?' · <span class="pend">en curso</span>':'')+'</div>'}).join(""):'');
   var op2=canOpe(v)&&cuoPend(v).length>0;
   $("vdPay").hidden=!op2;$("vdApl").hidden=!op2;
-  $("vdAnul").hidden=v.status==="Anulada"||v.conf===false;$("vddlg").showModal();
+  $("vdAnul").hidden=v.status==="Anulada"||v.conf===false||!!v.corrPend||finEnCola(v);
+  var fq=finEnCola(v);$("vdFin").hidden=!v.corrPend;$("vdFin").disabled=fq||!navigator.onLine;$("vdFin").textContent=fq?"Completando…":(navigator.onLine?"Completar corrección pendiente":"Completar corrección pendiente (requiere conexión)");
+  $("vddlg").showModal();
 }
+// Etapa 3: completa en el servidor las correcciones «En curso» de la venta (exige conexión; reintentos con el mismo identificador de cola)
+$("vdFin").onclick=function(){
+  var v=detV;if(!v||!v.corrPend||finEnCola(v))return;
+  if(!navigator.onLine){alert("Completar una corrección requiere conexión.");return}
+  op({t:"corrfin",sale:v.uid});$("vddlg").close();render();
+};
 $("vdCls").onclick=function(){$("vddlg").close()};
 $("vdAnul").onclick=function(){
   var v=detV;if(!v||v.conf===false||!confirm("¿Anular esta venta? El stock de los productos se devuelve."))return;
@@ -509,13 +519,16 @@ function uidOp(p){return p+"-"+Date.now().toString(36)+Math.random().toString(36
 function saleBy(uid){return S.ventas.filter(function(x){return x.uid===uid})[0]}
 function cuoSaldo(q){return Math.max(0,q.amount-(+q.paid||0))}
 function cuoPend(v){return (v.cuotas||[]).filter(function(q){return q.status!=="Anulada"&&q.status!=="Pagada"&&cuoSaldo(q)>0.005}).sort(function(a,b){return a.n-b.n})}
-function canOpe(v){return !!v&&v.status!=="Anulada"&&v.conf!==false}
+function canOpe(v){return !!v&&v.status!=="Anulada"&&v.conf!==false&&!v.corrPend&&!finEnCola(v)}
+// Etapa 3: una venta con corrección en curso (servidor) o con «Completar corrección pendiente» en cola queda bloqueada en pantalla
+function finEnCola(v){return Q.concat(PR.map(function(x){return x.op})).some(function(o){return o&&o.t==="corrfin"&&o.sale===v.uid})}
 function daysLate(d){return Math.round((parseD(ymd(new Date()))-parseD(d))/86400000)}
 function opDesc(o){
   if(o.t==="venta"&&o.v)return "Venta a "+o.v.client+" · "+money(o.v.total);
   if(o.t==="abono"&&o.a){var v=saleBy(o.a.sale);return "Abono "+money(o.a.amount)+(v?" · "+v.client+(v.id?" · venta N.º "+v.id:""):"")}
   if(o.t==="aplazar"&&o.p){var v2=saleBy(o.p.sale);return "Aplazamiento de "+o.p.items.length+" cuota(s)"+(v2?" · "+v2.client:"")}
   if(o.t==="anular"){var v3=saleBy(o.sale);return "Anulación de venta"+(v3?" · "+v3.client+(v3.id?" · N.º "+v3.id:""):"")}
+  if(o.t==="corrfin"){var v4=saleBy(o.sale);return "Completar corrección pendiente"+(v4?" · "+v4.client+(v4.id?" · venta N.º "+v4.id:""):"")}
   return o.t+(o.code?" · "+o.code:"")+(o.name?" · "+o.name:"")+(o.item&&o.item.code?" · "+o.item.code:"");
 }
 // Efecto local (optimista) de un abono: suma lo pagado a cada cuota y recalcula estados. El servidor vuelve a validar todo.
@@ -586,7 +599,7 @@ function renderCob(){
     var a=G[m[0]].sort(function(x,y){return x.q.date<y.q.date?-1:x.q.date>y.q.date?1:(x.v.client||"").localeCompare(y.v.client||"","es")});
     return '<div class="card"><h2>'+m[1]+' · '+a.length+' <span class="mu">'+money(T[m[0]])+'</span></h2>'+(a.map(function(x){
       var v=x.v,q=x.q,late=m[0]==="ven"?daysLate(q.date):0;
-      return '<div class="item"><div class="nm"><b>'+esc(v.client)+'</b><small>'+(v.id?'Venta N.º '+esc(v.id)+' · ':'')+'cuota '+q.n+' de '+v.cuotas.length+' · vence '+esc(q.date)+(q.orig&&q.orig!==q.date?' (original '+esc(q.orig)+')':'')+(late>0?' · <span class="low">'+late+' día'+(late===1?'':'s')+' de mora</span>':'')+'</small><small>Valor '+money(q.amount)+' · pagado '+money(q.paid||0)+' · <b>saldo '+money(x.s)+'</b>'+(q.status==="Parcial"?' · parcial':'')+'</small></div><div class="row"><button class="s p" data-a="pay" data-v="'+esc(v.uid)+'" data-n="'+q.n+'">Cobrar</button><button class="s" data-a="apl" data-v="'+esc(v.uid)+'" data-n="'+q.n+'">Aplazar</button></div></div>'
+      return '<div class="item"><div class="nm"><b>'+esc(v.client)+'</b><small>'+(v.id?'Venta N.º '+esc(v.id)+' · ':'')+'cuota '+q.n+' de '+v.cuotas.length+' · vence '+esc(q.date)+(q.orig&&q.orig!==q.date?' (original '+esc(q.orig)+')':'')+(late>0?' · <span class="low">'+late+' día'+(late===1?'':'s')+' de mora</span>':'')+'</small><small>Valor '+money(q.amount)+' · pagado '+money(q.paid||0)+' · <b>saldo '+money(x.s)+'</b>'+(q.status==="Parcial"?' · parcial':'')+'</small></div>'+(canOpe(v)?'<div class="row"><button class="s p" data-a="pay" data-v="'+esc(v.uid)+'" data-n="'+q.n+'">Cobrar</button><button class="s" data-a="apl" data-v="'+esc(v.uid)+'" data-n="'+q.n+'">Aplazar</button></div>':'<span class="mu pend">Corrección en curso</span>')+'</div>'
     }).join("")||'<div class="mu">Sin cuotas.</div>')+'</div>';
   }).join("");
 }
