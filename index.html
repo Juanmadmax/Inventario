@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Etapa 5 (index_etapa5_f1.html, diseño DISENO_ETAPA5_GARANTIAS_v1.2.md): garantías. Parte de index_etapa4_f10.html, que no se modifica. -->
 <!-- Etapa 4 (index_etapa4_f10.html, diseño DISENO_ETAPA4.md v1.5): medios de pago, proveedores, compras, pagos, programación del día 30, reservas, dinero y salidas. Parte de index_etapa3_f4.html. -->
 <!-- Etapa 3 completa (fases 3.0 a 3.4) — parte de index_etapa3_f0.html (Fase 3.0 validada). 3.1-3.2: correcciones financieras desde el detalle de venta. 3.3: pestaña Clientes, ficha, edición, sectores, estado. 3.4: pestaña Cartera (mora, compromisos, reporte por período). -->
 <html lang="es">
@@ -92,6 +93,7 @@ button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 <div class="card"><h2>Avisos</h2><div id="pvAv"></div></div>
 <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Proveedores</h2><select id="pvF" style="flex:none"><option value="">Todos</option><option value="a">Activos</option><option value="i">Inactivos</option><option value="s">Con saldo</option><option value="v">Con facturas vencidas</option></select></div><div id="pvList"></div></div>
 <div class="card"><h2>Facturas por vencimiento</h2><div id="pvFac"></div></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Garantías</h2><select id="gaF" style="flex:none"><option value="">Todas</option><option value="p">Pendientes de respuesta</option><option value="r">Reconocidas pendientes de aplicación</option><option value="pa">Parcialmente aplicadas</option><option value="t">Aplicadas totalmente</option><option value="n">No reconocidas</option><option value="x">Anuladas</option></select></div><div class="row" style="margin:8px 0"><button id="gaNew" class="p">Nueva garantía</button></div><div id="gaList"></div></div>
 <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Consultas por período</h2><button id="csTog" class="s">Mostrar</button></div><div id="csBox" hidden><div class="row" style="margin-top:8px"><label class="f">Desde<input id="csD1" type="date"></label><label class="f">Hasta<input id="csD2" type="date"></label><label class="f">Proveedor<select id="csP"></select></label><label class="f">Estado de factura<select id="csE"><option value="">Todos</option><option>Pendiente</option><option>Parcial</option><option>Pagada</option><option>Anulada</option></select></label><button id="csGo" class="p" style="align-self:flex-end">Calcular</button></div><div id="csOut"></div></div></div>
 </div>
 <dialog id="dlg">
@@ -1087,10 +1089,10 @@ $("rGo").onclick=renderCar;
 $("rOut").onclick=function(e){var b=e.target.closest("button[data-k]");if(b)openFicha(b.dataset.k)};
 
 // ===== ETAPA 4 (diseño DISENO_ETAPA4.md v1.5): medios de pago, proveedores, compras, pagos, programación del día 30, reservas, dinero y salidas =====
-var E4OPS=["medio","cuenta","motivo","prov","provupd","fact","factx","factven","pagoprov","pagoprovx","prog","progx","resv","resvx","dinero","dinerox","salida","salidax","salidarec","corrinv","reconinv"];
+var E4OPS=["gar","garresp","garx","garapl","garaplx","medio","cuenta","motivo","prov","provupd","fact","factx","factven","pagoprov","pagoprovx","prog","progx","resv","resvx","dinero","dinerox","salida","salidax","salidarec","corrinv","reconinv"];
 var MED_PROV="Pago directo a proveedor",MED_CLI="Pago directo de cliente",MOT_DEV="Devolución al proveedor";
-function e4(){S.e4=S.e4||{};var d=S.e4;["medios","cuentas","motivos","proveedores","facturas","pagos","programaciones","reservas","salidas","pendInv"].forEach(function(k){d[k]=d[k]||[]});d.mediosAb=d.mediosAb||{};d.activadores=d.activadores||{ok:true};return d}
-function e4Pick(d){var o={};["medios","cuentas","motivos","proveedores","facturas","pagos","programaciones","reservas","salidas","mediosAb","mediosTxt","activadores","pendInv"].forEach(function(k){if(d[k]!==undefined)o[k]=d[k]});return o}
+function e4(){S.e4=S.e4||{};var d=S.e4;["medios","cuentas","motivos","proveedores","facturas","pagos","programaciones","reservas","salidas","pendInv","garantias"].forEach(function(k){d[k]=d[k]||[]});d.mediosAb=d.mediosAb||{};d.activadores=d.activadores||{ok:true};return d}
+function e4Pick(d){var o={};["medios","cuentas","motivos","proveedores","facturas","pagos","programaciones","reservas","salidas","mediosAb","mediosTxt","activadores","pendInv","garantias"].forEach(function(k){if(d[k]!==undefined)o[k]=d[k]});return o}
 function e4Online(){if(!navigator.onLine||!CFG.u)return "Esta acción requiere conexión.";if(Q.length)return "Hay operaciones pendientes de sincronizar: sincroniza antes.";return ""}
 function e4Dias(){try{return Math.max(1,+localStorage.getItem("inv_avisos")||7)}catch(e){return 7}}
 function provBy(x){return e4().proveedores.filter(function(p){return p.uid===x||p.num===String(x)})[0]}
@@ -1190,6 +1192,7 @@ function e4Desc(o){
     case "resv":return "Destinar dinero a proveedor";case "resvx":return "Anulación de reserva";
     case "dinero":return "Confirmación de acreditación o liquidación ("+o.d.items.length+")";case "dinerox":return "Anulación de confirmación de dinero";
     case "salida":return "Salida «"+o.s.motivo+"» · "+o.s.qty+" × "+o.s.code;case "salidax":return "Reversión de salida";case "salidarec":return "Reconocimiento de devolución: "+o.s.estado;
+    case "gar":return "Garantía ("+o.g.fuente+") · reclamado "+money(o.g.reclamado);case "garresp":return "Respuesta o cambio de garantía";case "garx":return "Anulación de garantía";case "garapl":return "Aplicación de crédito de garantía "+money(o.g.valor);case "garaplx":return "Anulación de aplicación de garantía";
     case "corrinv":return "Completar operación de inventario pendiente";case "reconinv":return "Conciliación de inventario";
     default:return o.t+" · "+((o.m&&o.m.nombre)||(o.c&&o.c.nombre)||"");
   }
@@ -1269,7 +1272,7 @@ function e4Fact(provUid){
   $("fcLines").onclick=function(e){if(e.target.classList.contains("fd")){FL.splice(+e.target.closest("[data-i]").dataset.i,1);lines()}};
 }
 // ---------- Pago a proveedor (6.2) ----------
-function facSaldo(f){return Math.max(0,f.valor-f.pagado)}
+function facSaldo(f){return Math.max(0,f.valor-f.pagado-(f.credito||0))}   // Etapa 5 (C2): menos créditos de garantía
 function facsCon(pnum){return e4().facturas.filter(function(f){return f.prov===pnum&&f.estado!=="Anulada"&&!f.enCurso&&facSaldo(f)>0.005}).sort(function(a,b){return a.venc<b.venc?-1:1})}
 function e4Pago(provUid,progNum){
   var p=provBy(provUid);if(!p){alert("Elige primero un proveedor (desde su ficha).");return}
@@ -1317,7 +1320,8 @@ function e4Resv(provUid){
 // ---------- Avance de una programación (7.6) ----------
 function avance(g){var pr=0,dir=0,res=0;e4().pagos.forEach(function(p){if(p.estado!=="Vigente"||p.prog!==g.num)return;p.medios.forEach(function(c){if(c.medio===MED_CLI)dir+=c.valor;else pr+=c.valor})});
   e4().reservas.forEach(function(r){if(r.estado==="Vigente"&&r.prog===g.num)res+=r.valor});var asig=Object.keys(g.asig).reduce(function(a,k){return a+g.asig[k]},0),ent=pr+dir,dp=Math.max(0,res-pr);
-  return {asig:asig,sinAsig:Math.max(0,g.valor-asig),propio:pr,directo:dir,entregado:ent,reservado:res,destPend:dp,faltaReunir:Math.max(0,g.valor-ent-dp),faltaEntregar:Math.max(0,g.valor-ent)}}
+  var cred=Object.keys(g.credito||{}).reduce(function(a,k){return a+g.credito[k]},0);   // Etapa 5 (C5)
+  return {cred:cred,asig:asig,sinAsig:Math.max(0,g.valor-asig),propio:pr,directo:dir,entregado:ent,reservado:res,destPend:dp,faltaReunir:Math.max(0,g.valor-ent-dp-cred),faltaEntregar:Math.max(0,g.valor-ent-cred)}}
 function e4Avisos(){var d=e4(),t=ymd(new Date()),lim=nextD(t,e4Dias(),1),sem=nextD(t,7,1),A=[];
   d.programaciones.forEach(function(g){if(g.estado!=="Vigente")return;var a=avance(g),p=provBy(g.prov)||{};if(g.fechaPago<=lim&&a.faltaReunir>0)A.push("Programación "+g.periodo+" de "+p.nombre+" ("+g.fechaPago+"): falta por reunir "+money(a.faltaReunir));if(a.sinAsig>0)A.push("Programación "+g.periodo+" de "+p.nombre+": "+money(a.sinAsig)+" sin asignar a facturas")});
   d.facturas.forEach(function(f){if(f.estado==="Anulada"||facSaldo(f)<=0.005)return;var p=provBy(f.prov)||{};if(f.venc<t)A.push("Factura N.º "+f.num+" de "+p.nombre+" vencida desde "+f.venc+" · saldo "+money(facSaldo(f)));else if(f.venc<=sem)A.push("Factura N.º "+f.num+" de "+p.nombre+" vence "+f.venc+" · saldo "+money(facSaldo(f)));if(f.anuladaPor)A.push("Anulación de la factura N.º "+f.num+" en curso");if(f.enCurso)A.push("Compra N.º "+f.num+" en curso")});
@@ -1336,7 +1340,7 @@ function renderPrv(){
     return '<div class="item"><div class="nm"><b>'+esc(p.nombre)+(p.estado==="Inactivo"?' · inactivo':'')+'</b><small>deuda '+money(p.saldo||0)+(venc?' · <span class="low">vencido '+money(venc)+'</span>':'')+(g?' · pago del '+esc(g.fechaPago)+': falta '+money(avance(g).faltaReunir):'')+'</small></div><button class="s" data-pv="'+esc(p.uid)+'">Ficha</button></div>'}).join("")||'<div class="mu">Sin proveedores.</div>';
   var G={v:[],h:[],s:[],m:[]};d.facturas.forEach(function(f){if(f.estado==="Anulada"||facSaldo(f)<=0.005)return;(f.venc<t?G.v:f.venc===t?G.h:f.venc<=nextD(t,7,1)?G.s:G.m).push(f)});
   var nm={v:"Vencidas",h:"Vencen hoy",s:"Próximos 7 días",m:"Más adelante"};
-  $("pvFac").innerHTML=Object.keys(G).map(function(k){if(!G[k].length)return "";return '<h3>'+nm[k]+' · '+G[k].length+'</h3>'+G[k].sort(function(a,b){return a.venc<b.venc?-1:1}).map(function(f){var p=provBy(f.prov)||{};return '<div class="mu">'+esc(f.venc)+' · '+esc(p.nombre||"")+' · factura N.º '+esc(f.num)+(f.numProv?' ('+esc(f.numProv)+')':'')+' · saldo '+money(facSaldo(f))+(f.programada?' · programada':'')+'</div>'}).join("")}).join("")||'<div class="mu">Sin facturas pendientes.</div>';
+  $("pvFac").innerHTML=Object.keys(G).map(function(k){if(!G[k].length)return "";return '<h3>'+nm[k]+' · '+G[k].length+'</h3>'+G[k].sort(function(a,b){return a.venc<b.venc?-1:1}).map(function(f){var p=provBy(f.prov)||{};return '<div class="mu">'+esc(f.venc)+' · '+esc(p.nombre||"")+' · factura N.º '+esc(f.num)+(f.numProv?' ('+esc(f.numProv)+')':'')+' · saldo '+money(facSaldo(f))+(f.programada?' · programada':'')+'</div>'}).join("")}).join("")||'<div class="mu">Sin facturas pendientes.</div>';renderGar();
 }
 $("pvF").onchange=renderPrv;
 $("pvList").onclick=function(e){var b=e.target.closest("button[data-pv]");if(b)e4Ficha(b.dataset.pv)};
@@ -1345,13 +1349,13 @@ function e4Ficha(uid){
   var d=e4(),p=provBy(uid);if(!p)return;var t=ymd(new Date());
   var fs=d.facturas.filter(function(f){return f.prov===p.num}),ps=d.pagos.filter(function(x){return x.prov===p.num}),gs=d.programaciones.filter(function(x){return x.prov===p.num}),rs=d.reservas.filter(function(x){return x.prov===p.num});
   var dir=e4DirOpts({prov:p.num});
-  var h='<div class="mu">'+(p.doc?'Doc. '+esc(p.doc)+' · ':'')+(p.tel?'Tel. '+esc(p.tel)+' · ':'')+(p.contacto?esc(p.contacto)+' · ':'')+'plazo '+p.plazo+' día(s) · '+esc(p.estado)+(p.notas?'<br>'+esc(p.notas):'')+'</div><div style="margin-top:6px"><b>Deuda '+money(p.saldo||0)+'</b></div>'+
+  var h='<div class="mu">'+(p.doc?'Doc. '+esc(p.doc)+' · ':'')+(p.tel?'Tel. '+esc(p.tel)+' · ':'')+(p.contacto?esc(p.contacto)+' · ':'')+'plazo '+p.plazo+' día(s) · '+esc(p.estado)+(p.notas?'<br>'+esc(p.notas):'')+'</div><div style="margin-top:6px"><b>Deuda '+money(p.saldo||0)+'</b>'+(p.credDisp>0.005?' · crédito de garantías disponible '+money(p.credDisp):'')+'</div>'+
     '<div class="row" style="margin-top:8px"><button class="s" data-a="edit">Editar</button>'+(p.estado==="Activo"?'<button class="s p" data-a="compra">Nueva compra / factura</button>':'')+'<button class="s" data-a="pago">Registrar pago</button><button class="s" data-a="prog">Programar pago del 30</button><button class="s" data-a="resv">Destinar dinero</button></div>'+
     '<h3>Facturas</h3>'+(fs.map(function(f){return '<div class="item"><div class="nm"><b>N.º '+esc(f.num)+(f.numProv?' ('+esc(f.numProv)+')':'')+' · '+esc(f.tipo)+' · '+money(f.valor)+'</b><small>'+esc(f.fecha)+' · vence '+esc(f.venc)+(f.vencCalc!==f.venc?' (calculado '+esc(f.vencCalc)+')':'')+' · pagado '+money(f.pagado)+' · saldo '+money(facSaldo(f))+' · '+esc(f.estado)+(f.programada?' · programada':'')+(f.enCurso?' · <span class="pend">en curso</span>':'')+'</small>'+
       (f.lineas.length?'<small>'+f.lineas.map(function(l){return l.qty+' × '+esc(l.name)+' a '+money(l.cost)+(l.estado==="Anulado"?' (anulada)':'')}).join(" · ")+'</small>':'')+(f.cambios.length?'<small>Cambios de vencimiento: '+f.cambios.map(function(c){return esc(c.de)+' → '+esc(c.a)+' ('+esc(c.motivo)+')'}).join("; ")+'</small>':'')+'</div><div class="row">'+
       (f.estado==="Pendiente"||f.estado==="Parcial"?'<button class="s" data-a="ven" data-i="'+esc(f.uid)+'">Vencimiento</button>':'')+(f.estado!=="Anulada"&&f.uid?'<button class="s" data-a="fx" data-i="'+esc(f.uid)+'" style="color:var(--bad)">Anular</button>':'')+'</div></div>'}).join("")||'<div class="mu">Sin facturas.</div>')+
     '<h3>Pagos</h3>'+(ps.map(function(x){return '<div class="item"><div class="nm"><b>N.º '+esc(x.num)+' · '+money(x.valor)+' · '+esc(x.estado)+'</b><small>'+esc(x.fecha)+' · '+esc(x.dist)+(x.prog?' · programación N.º '+esc(x.prog):'')+'<br>'+esc(medsTxt(x.medios))+'</small></div>'+(x.estado==="Vigente"?'<button class="s" data-a="px" data-i="'+esc(x.uid)+'" style="color:var(--bad)">Anular</button>':'')+'</div>'}).join("")||'<div class="mu">Sin pagos.</div>')+
-    '<h3>Programaciones del día 30</h3>'+(gs.map(function(g){var a=avance(g);return '<div class="item"><div class="nm"><b>N.º '+esc(g.num)+' · '+esc(g.periodo)+' · '+money(g.valor)+' · '+esc(g.estado)+' · v'+g.version+'</b><small>pago '+esc(g.fechaPago)+' · asignado '+money(a.asig)+' · sin asignar '+money(a.sinAsig)+' · entregado '+money(a.entregado)+' (propio '+money(a.propio)+', directo de clientes '+money(a.directo)+') · reservado '+money(a.reservado)+' · destinado pendiente '+money(a.destPend)+' · <b>falta por reunir '+money(a.faltaReunir)+'</b> · falta por entregar '+money(a.faltaEntregar)+'</small><small>'+Object.keys(g.asig).map(function(k){var e=g.efectivo[k];return 'factura N.º '+k+': '+money(g.asig[k])+(e?' (pendiente efectivo '+money(e.efectivo)+')':'')}).join(" · ")+'</small><small>Historial: '+g.hist.map(function(x){return 'v'+x.version+' '+esc(x.fecha)+' '+money(x.valor)+(x.motivo?' ('+esc(x.motivo)+')':'')}).join("; ")+'</small></div>'+(g.estado==="Vigente"?'<div class="row"><button class="s" data-a="pmod" data-i="'+esc(g.num)+'">Modificar</button><button class="s" data-a="pgx" data-i="'+esc(g.num)+'" style="color:var(--bad)">Anular</button></div>':'')+'</div>'}).join("")||'<div class="mu">Sin programaciones.</div>')+
+    '<h3>Programaciones del día 30</h3>'+(gs.map(function(g){var a=avance(g);return '<div class="item"><div class="nm"><b>N.º '+esc(g.num)+' · '+esc(g.periodo)+' · '+money(g.valor)+' · '+esc(g.estado)+' · v'+g.version+'</b><small>pago '+esc(g.fechaPago)+' · asignado '+money(a.asig)+' · sin asignar '+money(a.sinAsig)+' · entregado '+money(a.entregado)+' (propio '+money(a.propio)+', directo de clientes '+money(a.directo)+') · reservado '+money(a.reservado)+' · destinado pendiente '+money(a.destPend)+(a.cred?' · crédito de garantías '+money(a.cred):'')+' · <b>falta por reunir '+money(a.faltaReunir)+'</b> · falta por entregar '+money(a.faltaEntregar)+'</small><small>'+Object.keys(g.asig).map(function(k){var e=g.efectivo[k];return 'factura N.º '+k+': '+money(g.asig[k])+(e?' (pendiente efectivo '+money(e.efectivo)+')':'')}).join(" · ")+'</small><small>Historial: '+g.hist.map(function(x){return 'v'+x.version+' '+esc(x.fecha)+' '+money(x.valor)+(x.motivo?' ('+esc(x.motivo)+')':'')}).join("; ")+'</small></div>'+(g.estado==="Vigente"?'<div class="row"><button class="s" data-a="pmod" data-i="'+esc(g.num)+'">Modificar</button><button class="s" data-a="pgx" data-i="'+esc(g.num)+'" style="color:var(--bad)">Anular</button></div>':'')+'</div>'}).join("")||'<div class="mu">Sin programaciones.</div>')+
     '<h3>Dinero destinado</h3>'+(rs.map(function(r){return '<div class="item"><div class="nm"><b>N.º '+esc(r.num)+' · '+money(r.valor)+' · '+esc(r.estado)+(r.enCurso?' (anulación en curso)':'')+'</b><small>'+esc(r.fecha)+' · componente '+esc(r.comp)+(r.cuenta?' · '+esc(r.cuenta):'')+(r.prog?' · programación N.º '+esc(r.prog):'')+' · consumido '+money(r.consumido)+'</small></div>'+(r.estado==="Vigente"&&r.consumido<0.005?'<button class="s" data-a="rx" data-i="'+esc(r.uid)+'" style="color:var(--bad)">Anular</button>':'')+'</div>'}).join("")||'<div class="mu">Sin reservas.</div>')+
     (dir.length?'<h3>Pagos directos de clientes sin aplicar</h3>'+dir.map(function(o){return '<div class="mu">'+esc(o.t)+'</div>'}).join(""):'');
   e4Dlg(p.nombre,h);
@@ -1366,6 +1370,76 @@ function e4Ficha(uid){
     if(a==="rx")op({t:"resvx",r:{uid:uidOp("RX"),reserva:i,motivo:mot}});
     $("e4dlg").close();};
 }
+// ---------- Etapa 5: Garantías (DISENO_ETAPA5_GARANTIAS_v1.2.md) ----------
+var GAR_TIPOS=["Próxima factura","Día 30","Saldo a favor"];
+function garBy(u){return e4().garantias.filter(function(g){return g.uid===u})[0]||null}
+function garCerrada(g){return g.estado==="No reconocida"||((g.estado==="Reconocida"||g.estado==="Reconocida parcialmente")&&g.disp<=0.005)}
+function renderGar(){var f=$("gaF").value,L=e4().garantias.slice().reverse().filter(function(g){
+    var rec=g.estado==="Reconocida"||g.estado==="Reconocida parcialmente";
+    if(f==="p")return g.estado==="Pendiente de respuesta";if(f==="r")return rec&&g.aplicado<=0.005&&g.disp>0.005;if(f==="pa")return rec&&g.aplicado>0.005&&g.disp>0.005;
+    if(f==="t")return rec&&g.disp<=0.005&&g.aplicado>0.005;if(f==="n")return g.estado==="No reconocida";if(f==="x")return g.estado==="Anulada";return true});
+  $("gaList").innerHTML=L.map(function(g){return '<div class="item"><div class="nm"><b>N.º '+esc(g.num)+' · '+esc(g.name)+' ('+esc(g.code)+') · '+esc(g.provNombre)+'</b><small>reclamo '+esc(g.fecha)+' · '+g.qty+' × '+money(g.costo)+' · reclamado '+money(g.reclamado)+' · reconocido '+money(g.reconocido)+(g.tipo?' · '+esc(g.tipo):'')+' · <b>'+esc(g.estado)+'</b>'+(g.estado!=="Anulada"&&g.estado!=="Pendiente de respuesta"?' · aplicado '+money(g.aplicado)+' · disponible '+money(g.disp):'')+(garCerrada(g)?' · cerrada':'')+'</small></div><button class="s" data-ga="'+esc(g.uid)+'">Ficha</button></div>'}).join("")||'<div class="mu">Sin garantías.</div>'}
+$("gaF").onchange=renderGar;
+$("gaList").onclick=function(e){var b=e.target.closest("button[data-ga]");if(b)e4GarFicha(b.dataset.ga)};
+$("gaNew").onclick=function(){if(!e4().proveedores.length){alert("Crea primero un proveedor.");return}e4GarNew()};
+function garOrigenes(fu){var O=[],d=e4();
+  if(fu==="Compra")d.facturas.forEach(function(f){if(f.tipo!=="Compra de mercancía"||f.estado==="Anulada"||!f.uid)return;var p=provBy(f.prov)||{};f.lineas.forEach(function(l){if(l.estado==="Anulado")return;O.push({v:f.uid+"|"+l.n,t:"Compra N.º "+f.num+" · "+(p.nombre||"")+" · línea "+l.n+" · "+l.qty+" × "+l.name+" a "+money(l.cost),cost:l.cost,qty:l.qty})})});
+  if(fu==="Venta")(S.ventas||[]).forEach(function(v){if(v.status==="Anulada"||v.conf===false||!v.uid)return;(v.items||[]).forEach(function(it,k){if(it.status!=="Vigente"||it.cost===null||it.cost===undefined)return;O.push({v:v.uid+"|"+(k+1),t:"Venta N.º "+v.id+" · "+String(v.date).slice(0,10)+" · "+it.qty+" × "+it.name+" · costo "+money(it.cost),cost:it.cost,qty:it.qty})})});
+  if(fu==="Devolución"){var usadas={};d.garantias.forEach(function(g){if(g.estado!=="Anulada")usadas[g.origen]=1});
+    d.salidas.forEach(function(s){if(s.motivo!==MOT_DEV||s.estado!=="Vigente"||(s.recon!=="Reconocida"&&s.recon!=="No reconocida")||s.costo===null||usadas["S"+s.num])return;var p=provBy(s.prov)||{};O.push({v:s.uid,t:"Devolución N.º "+s.num+" · "+(p.nombre||"")+" · "+s.qty+" × "+s.name+" · "+s.recon+(s.reconValor?" "+money(s.reconValor):""),cost:s.costo,qty:s.qty,dev:s.reconValor||0})})}
+  return O}
+function e4GarNew(){var ed=false;
+  e4Dlg("Nueva garantía",'<div class="row">'+sel("gaFu","Fuente del costo histórico",["Compra","Venta","Devolución"],"Compra")+'</div><div class="row" style="margin-top:8px"><label class="f" style="flex:3 1 260px">Línea de origen<select id="gaOr"></select></label></div>'+
+    '<div class="row" style="margin-top:8px" id="gaPvW" hidden>'+sel("gaPv","Proveedor responsable",[{v:"",t:"Elige…"}].concat(provOpts(true)),"")+'</div>'+
+    '<div class="row" style="margin-top:8px">'+inp("gaFe","Fecha del reclamo",ymd(new Date()),"date")+inp("gaQ","Cantidad",1,"number",' min="1"')+inp("gaR","Valor reclamado","","number",' min="0" step="0.01"')+'</div>'+
+    '<div class="mu" id="gaInfo" style="margin-top:6px"></div>'+inp("gaO","Observaciones",""),function(){
+    var O=garOrigenes(fv("gaFu")),o=O.filter(function(x){return x.v===fv("gaOr")})[0];if(!o){alert("Elige la línea de origen (no hay líneas válidas con costo histórico).");return false}
+    var q=Math.floor(+fv("gaQ")||0),rc=Math.round((+fv("gaR")||0)*100)/100,fu=fv("gaFu");if(fu==="Devolución")q=o.qty;
+    if(!(q>0)||q>o.qty){alert("La cantidad debe estar entre 1 y "+o.qty+".");return false}if(!(rc>0)){alert("Escribe el valor reclamado.");return false}
+    if(o.dev&&o.dev>rc){alert("El valor reclamado no puede ser menor que lo ya reconocido en la devolución ("+money(o.dev)+").");return false}
+    if(fv("gaFe")>ymd(new Date())){alert("La fecha del reclamo no puede ser futura.");return false}
+    var g={uid:uidOp("GA"),fuente:fu,fecha:fv("gaFe"),qty:q,reclamado:rc,obs:fv("gaO")},p=fv("gaOr").split("|");
+    if(fu==="Compra"){g.fact=p[0];g.linea=+p[1]}else if(fu==="Venta"){g.venta=p[0];g.pos=+p[1];g.prov=fv("gaPv");if(!g.prov){alert("Elige el proveedor responsable.");return false}}else g.salida=p[0];
+    op({t:"gar",g:g})});
+  function sug(){var O=garOrigenes(fv("gaFu")),o=O.filter(function(x){return x.v===fv("gaOr")})[0],dev=fv("gaFu")==="Devolución";$("gaQ").disabled=dev;if(o&&dev)$("gaQ").value=o.qty;
+    if(o&&!ed)$("gaR").value=Math.round(o.cost*(Math.floor(+$("gaQ").value)||0)*100)/100;
+    $("gaInfo").textContent=o?("Costo histórico unitario "+money(o.cost)+" · unidades en la línea "+o.qty+(o.dev?" · reconocido en la devolución "+money(o.dev)+" (la garantía hereda esa respuesta)":"")):"No hay líneas con costo histórico para esta fuente."}
+  function fu(){var O=garOrigenes(fv("gaFu"));$("gaOr").innerHTML=O.map(function(o){return '<option value="'+esc(o.v)+'">'+esc(o.t)+'</option>'}).join("");$("gaPvW").hidden=fv("gaFu")!=="Venta";ed=false;sug()}
+  $("gaFu").onchange=fu;$("gaOr").onchange=function(){ed=false;sug()};$("gaQ").oninput=sug;$("gaR").oninput=function(){ed=true};fu()}
+function e4GarFicha(uid){var g=garBy(uid);if(!g)return;
+  var h='<div class="mu">'+esc(g.name)+' ('+esc(g.code)+') · '+esc(g.provNombre)+' · fuente '+esc(g.fuente)+' '+esc(g.origen)+' · reclamo '+esc(g.fecha)+(g.obs?'<br>'+esc(g.obs):'')+'</div>'+
+    '<div style="margin-top:6px"><b>'+esc(g.estado)+'</b> · '+g.qty+' × '+money(g.costo)+' · reclamado '+money(g.reclamado)+' · reconocido '+money(g.reconocido)+(g.tipo?' · '+esc(g.tipo):'')+(g.estado!=="Pendiente de respuesta"&&g.estado!=="Anulada"?' · aplicado '+money(g.aplicado)+' · <b>disponible '+money(g.disp)+'</b>':'')+(g.motivoAnul?' · anulada: '+esc(g.motivoAnul):'')+'</div>'+
+    '<div class="row" style="margin-top:8px">'+(g.estado!=="Anulada"?'<button class="s p" data-a="resp">'+(g.estado==="Pendiente de respuesta"?'Respuesta del proveedor':'Corregir reconocimiento o tipo')+'</button>':'')+(g.disp>0.005?'<button class="s" data-a="apl">Aplicar crédito</button>':'')+(g.estado!=="Anulada"&&g.aplicado<=0.005?'<button class="s" data-a="gx" style="color:var(--bad)">Anular</button>':'')+'</div>'+
+    '<h3>Historial</h3>'+(g.cambios.map(function(c){return '<div class="mu">'+esc(c.fecha)+' · '+esc(c.tipo)+' · '+esc(c.estDe)+' → '+esc(c.estA)+' · reconocido '+money(c.de)+' → '+money(c.a)+(c.tipoA?' · '+esc(c.tipoA):'')+(c.detalle?' · '+esc(c.detalle):'')+(c.motivo?' · motivo: '+esc(c.motivo):'')+'</div>'}).join("")||'<div class="mu">Sin cambios.</div>')+
+    '<h3>Aplicaciones</h3>'+(g.aplicaciones.map(function(a){return '<div class="item"><div class="nm"><b>N.º '+esc(a.num)+' · '+money(a.valor)+' · '+esc(a.estado)+'</b><small>'+esc(a.fecha)+' · '+esc(a.destino)+' · factura N.º '+esc(a.fact)+(a.prog?' · programación N.º '+esc(a.prog):'')+(a.nota?' · '+esc(a.nota):'')+(a.motivoAnul?' · anulada: '+esc(a.motivoAnul):'')+'</small></div>'+(a.estado==="Vigente"?'<button class="s" data-a="ax" data-i="'+esc(a.uid)+'" style="color:var(--bad)">Anular</button>':'')+'</div>'}).join("")||'<div class="mu">Sin aplicaciones.</div>');
+  e4Dlg("Garantía N.º "+g.num,h);
+  $("e4Body").onclick=function(e){var b=e.target.closest("button[data-a]");if(!b)return;var bl=e4Online();if(bl){alert(bl);return}var a=b.dataset.a;
+    if(a==="resp")return e4GarResp(g);if(a==="apl")return e4GarApl(g);
+    var m=prompt("Motivo (obligatorio, mínimo 5 caracteres). Anular significa que se registró por error.");if(!m||m.trim().length<5){if(m!==null)alert("El motivo es obligatorio.");return}m=m.trim().slice(0,300);
+    if(a==="gx")op({t:"garx",g:{uid:uidOp("GX"),gar:g.uid,motivo:m}});if(a==="ax")op({t:"garaplx",g:{uid:uidOp("GPX"),apl:b.dataset.i,motivo:m}});$("e4dlg").close()}}
+function e4GarResp(g){var pr=g.estado==="Pendiente de respuesta";
+  e4Dlg((pr?"Respuesta del proveedor":"Corregir reconocimiento")+" · garantía N.º "+g.num,'<div class="mu">Reclamado '+money(g.reclamado)+(g.aplicado>0.005?' · ya aplicado '+money(g.aplicado)+' (el reconocido no puede quedar por debajo)':'')+'. Valor 0 = no reconocida.</div><div class="row" style="margin-top:8px">'+
+    inp("grV","Valor reconocido",g.reconocido,"number",' min="0" step="0.01"')+sel("grT","Tipo de reconocimiento",[{v:"",t:"—"}].concat(GAR_TIPOS),g.tipo)+(pr?inp("grF","Fecha de la respuesta",ymd(new Date()),"date"):'')+'</div>'+
+    (pr?inp("grD","Detalle de la respuesta (nota crédito, correo…)",""):'')+inp("grM","Motivo"+(pr?" de la diferencia (si el reconocido difiere del reclamado)":" del cambio"),""),function(){
+    var v=Math.round((+fv("grV")||0)*100)/100,t=v>0?fv("grT"):"",m=fv("grM");
+    if(v<0||v>g.reclamado){alert("El valor reconocido debe estar entre 0 y el reclamado ("+money(g.reclamado)+").");return false}if(v<g.aplicado-0.005){alert("No puede quedar por debajo de lo ya aplicado.");return false}
+    if(v>0&&!t){alert("Elige el tipo de reconocimiento.");return false}if(pr&&fv("grD").length<5){alert("El detalle es obligatorio (mínimo 5 caracteres).");return false}
+    if((!pr||Math.abs(v-g.reclamado)>0.005)&&m.length<5){alert("El motivo es obligatorio (mínimo 5 caracteres).");return false}
+    op({t:"garresp",g:{uid:uidOp("GR"),gar:g.uid,reconocido:v,tipo:t,motivo:m,detalle:pr?fv("grD"):"",fecha:pr?fv("grF"):"",esperado:{reconocido:g.reconocido,tipo:g.tipo,estado:g.estado}}})},"Registrar")}
+function e4GarApl(g){var d=e4(),dia=g.tipo==="Día 30",ref=(g.cambios.length?g.cambios[g.cambios.length-1].fecha:g.reg);
+  var fs=d.facturas.filter(function(f){return f.prov===g.prov&&f.estado!=="Anulada"&&f.uid&&facSaldo(f)>0.005}).sort(function(a,b){var x=a.reg>=ref,y=b.reg>=ref;return x!==y?(x?-1:1):(a.reg<b.reg?-1:1)});
+  var gs=d.programaciones.filter(function(p){return p.prov===g.prov&&p.estado==="Vigente"});
+  if(!fs.length){alert("El proveedor no tiene facturas con saldo. El crédito queda disponible.");return}
+  e4Dlg("Aplicar crédito · garantía N.º "+g.num,'<div class="mu">'+esc(g.tipo)+' · disponible '+money(g.disp)+(dia?' · la factura debe estar asignada a la programación del día 30':'')+'</div><div class="row" style="margin-top:8px">'+
+    sel("gaF2","Factura",fs.map(function(f){return {v:f.uid,t:"N.º "+f.num+(f.numProv?" ("+f.numProv+")":"")+" · "+String(f.reg).slice(0,10)+" · saldo "+money(facSaldo(f))}}),"")+(dia?'<label class="f">Programación<select id="gaPg"></select></label>':'')+'</div><div class="row" style="margin-top:8px">'+inp("gaV","Valor a aplicar","","number",' min="0" step="0.01"')+inp("gaN","Nota","")+'</div><div class="mu" id="gaRes"></div>',function(){
+    var f=facBy(fv("gaF2")),v=Math.round((+fv("gaV")||0)*100)/100,o={uid:uidOp("GP"),gar:g.uid,fact:f.uid,valor:v,nota:fv("gaN")};
+    if(!(v>0)||v>g.disp+0.005||v>facSaldo(f)+0.005){alert("El valor debe ser mayor que cero, sin superar el disponible ("+money(g.disp)+") ni el saldo de la factura ("+money(facSaldo(f))+").");return false}
+    if(dia){o.prog=fv("gaPg");if(!o.prog){alert("La factura no está asignada a una programación vigente.");return false}var p=gs.filter(function(x){return x.num===o.prog})[0],e=(p.efectivo[f.num]||{}).efectivo||0;if(v>e+0.005){alert("La factura solo tiene "+money(e)+" pendiente en esa programación.");return false}}
+    if(!confirm("Garantía N.º "+g.num+" · "+g.provNombre+"\nDisponible "+money(g.disp)+" · aplicar "+money(v)+" a la factura N.º "+f.num+(o.prog?" (programación N.º "+o.prog+")":"")+"\nSaldo restante de la garantía: "+money(g.disp-v)))return false;
+    op({t:"garapl",g:o})},"Aplicar");
+  function up(){var f=facBy(fv("gaF2"));if(dia){var P=gs.filter(function(p){return (p.asig[f.num]||0)>0.005});$("gaPg").innerHTML=P.map(function(p){return '<option value="'+esc(p.num)+'">N.º '+esc(p.num)+' · '+esc(p.periodo)+' · pendiente '+money((p.efectivo[f.num]||{}).efectivo||0)+'</option>'}).join("")||'<option value="">(no asignada)</option>'}
+    $("gaV").value=Math.min(g.disp,facSaldo(f));$("gaRes").textContent="Saldo de la factura "+money(facSaldo(f))}
+  $("gaF2").onchange=up;up()}
 // ---------- Salidas no comerciales (8) ----------
 function e4Salida(code){
   var mots=e4().motivos.filter(function(m){return m.activo});
