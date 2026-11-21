@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Etapa 5 (index_etapa5_f1.html, diseño DISENO_ETAPA5_GARANTIAS_v1.2.md): garantías. Parte de index_etapa4_f10.html, que no se modifica. -->
+<!-- Etapa 5 (index_etapa5_f3.html, diseño DISENO_ETAPA5_GARANTIAS_v1.2.md): garantías. Parte de index_etapa4_f10.html, que no se modifica. -->
 <!-- Etapa 4 (index_etapa4_f10.html, diseño DISENO_ETAPA4.md v1.5): medios de pago, proveedores, compras, pagos, programación del día 30, reservas, dinero y salidas. Parte de index_etapa3_f4.html. -->
 <!-- Etapa 3 completa (fases 3.0 a 3.4) — parte de index_etapa3_f0.html (Fase 3.0 validada). 3.1-3.2: correcciones financieras desde el detalle de venta. 3.3: pestaña Clientes, ficha, edición, sectores, estado. 3.4: pestaña Cartera (mora, compromisos, reporte por período). -->
 <html lang="es">
@@ -1430,15 +1430,15 @@ function e4GarApl(g){var d=e4(),dia=g.tipo==="Día 30",ref=(g.cambios.length?g.c
   var fs=d.facturas.filter(function(f){return f.prov===g.prov&&f.estado!=="Anulada"&&f.uid&&facSaldo(f)>0.005}).sort(function(a,b){var x=a.reg>=ref,y=b.reg>=ref;return x!==y?(x?-1:1):(a.reg<b.reg?-1:1)});
   var gs=d.programaciones.filter(function(p){return p.prov===g.prov&&p.estado==="Vigente"});
   if(!fs.length){alert("El proveedor no tiene facturas con saldo. El crédito queda disponible.");return}
-  e4Dlg("Aplicar crédito · garantía N.º "+g.num,'<div class="mu">'+esc(g.tipo)+' · disponible '+money(g.disp)+(dia?' · la factura debe estar asignada a la programación del día 30':'')+'</div><div class="row" style="margin-top:8px">'+
-    sel("gaF2","Factura",fs.map(function(f){return {v:f.uid,t:"N.º "+f.num+(f.numProv?" ("+f.numProv+")":"")+" · "+String(f.reg).slice(0,10)+" · saldo "+money(facSaldo(f))}}),"")+(dia?'<label class="f">Programación<select id="gaPg"></select></label>':'')+'</div><div class="row" style="margin-top:8px">'+inp("gaV","Valor a aplicar","","number",' min="0" step="0.01"')+inp("gaN","Nota","")+'</div><div class="mu" id="gaRes"></div>',function(){
+  e4Dlg("Aplicar crédito · garantía N.º "+g.num,'<div class="mu">'+esc(g.tipo)+' · disponible '+money(g.disp)+' · si la factura está en una programación del día 30, el crédito se descuenta primero de ese pago'+'</div><div class="row" style="margin-top:8px">'+
+    sel("gaF2","Factura",fs.map(function(f){return {v:f.uid,t:"N.º "+f.num+(f.numProv?" ("+f.numProv+")":"")+" · "+String(f.reg).slice(0,10)+" · saldo "+money(facSaldo(f))}}),"")+'</div><div class="row" style="margin-top:8px">'+inp("gaV","Valor a aplicar","","number",' min="0" step="0.01"')+inp("gaN","Nota","")+'</div><div class="mu" id="gaRes"></div>',function(){
     var f=facBy(fv("gaF2")),v=Math.round((+fv("gaV")||0)*100)/100,o={uid:uidOp("GP"),gar:g.uid,fact:f.uid,valor:v,nota:fv("gaN")};
     if(!(v>0)||v>g.disp+0.005||v>facSaldo(f)+0.005){alert("El valor debe ser mayor que cero, sin superar el disponible ("+money(g.disp)+") ni el saldo de la factura ("+money(facSaldo(f))+").");return false}
-    if(dia){o.prog=fv("gaPg");if(!o.prog){alert("La factura no está asignada a una programación vigente.");return false}var p=gs.filter(function(x){return x.num===o.prog})[0],e=(p.efectivo[f.num]||{}).efectivo||0;if(v>e+0.005){alert("La factura solo tiene "+money(e)+" pendiente en esa programación.");return false}}
-    if(!confirm("Garantía N.º "+g.num+" · "+g.provNombre+"\nDisponible "+money(g.disp)+" · aplicar "+money(v)+" a la factura N.º "+f.num+(o.prog?" (programación N.º "+o.prog+")":"")+"\nSaldo restante de la garantía: "+money(g.disp-v)))return false;
+    var P=pend(f);if(dia&&!P.length){alert("La factura no tiene pendiente en ninguna programación del día 30: elige otra factura o cambia el tipo de reconocimiento.");return false}
+    if(!confirm("Garantía N.º "+g.num+" · "+g.provNombre+"\nDisponible "+money(g.disp)+" · aplicar "+money(v)+" a la factura N.º "+f.num+(P.length?"\nSe descuenta primero del pago del día 30: "+P.map(function(x){return "N.º "+x.num+" (pendiente "+money(x.e)+")"}).join(", "):"")+"\nSaldo restante de la garantía: "+money(g.disp-v)))return false;
     op({t:"garapl",g:o})},"Aplicar");
-  function up(){var f=facBy(fv("gaF2"));if(dia){var P=gs.filter(function(p){return (p.asig[f.num]||0)>0.005});$("gaPg").innerHTML=P.map(function(p){return '<option value="'+esc(p.num)+'">N.º '+esc(p.num)+' · '+esc(p.periodo)+' · pendiente '+money((p.efectivo[f.num]||{}).efectivo||0)+'</option>'}).join("")||'<option value="">(no asignada)</option>'}
-    $("gaV").value=Math.min(g.disp,facSaldo(f));$("gaRes").textContent="Saldo de la factura "+money(facSaldo(f))}
+  function pend(f){return gs.filter(function(p){return (p.asig[f.num]||0)>0.005}).map(function(p){return {num:p.num,fp:p.fechaPago,e:(p.efectivo[f.num]||{}).efectivo||0}}).filter(function(x){return x.e>0.005}).sort(function(a,b){return a.fp<b.fp?-1:a.fp>b.fp?1:(+a.num)-(+b.num)})}   // f3: lo decide la factura
+  function up(){var f=facBy(fv("gaF2")),P=pend(f);$("gaV").value=Math.min(g.disp,facSaldo(f));$("gaRes").textContent="Saldo de la factura "+money(facSaldo(f))+(P.length?" · está en el pago del día 30: "+P.map(function(x){return "N.º "+x.num+" ("+x.fp+", pendiente "+money(x.e)+")"}).join(", ")+" → el crédito baja primero ese pago":" · no está en ninguna programación del día 30")}
   $("gaF2").onchange=up;up()}
 // ---------- Salidas no comerciales (8) ----------
 function e4Salida(code){
