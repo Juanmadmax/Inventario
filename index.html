@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Etapa 6 f3 (index_etapa6_f3.html): parte de index_etapa6_f2.html, que no se modifica. Lo oculto se oculta siempre ([hidden] frente a .row y estilos en línea); la última sincronización se ve mientras sincroniza. Servidor: Code_etapa6_f2.gs. -->
 <!-- Etapa 6 f2 (index_etapa6_f2.html): parte de index_etapa6_f1.html, que no se modifica. Ajustes de la aceptación: sincronización que se repite, contador de códigos protegido, enlace de Drive en productos nuevos, botones desactivados visibles, avisos de uso. -->
 <!-- Etapa 6 (index_etapa6_f1.html, diseño documentacion/DISENO_ETAPA6.md v1.1): sin día 30, falta por reunir, compra con productos nuevos y tallas, carga inicial, fotos desde el celular, filtros, etiquetas carta, selector por fotos, WhatsApp y resumen diario. Parte de index_etapa5_f3.html, que no se modifica. -->
 <!-- Etapa 5 (index_etapa5_f3.html, diseño DISENO_ETAPA5_GARANTIAS_v1.2.md): garantías. Parte de index_etapa4_f10.html, que no se modifica. -->
@@ -22,7 +23,7 @@ h1{font-size:20px;margin:4px 0 12px}h2{font-size:15px;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input,select,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;min-width:0}
-input{flex:1 1 110px}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
+[hidden]{display:none!important}input{flex:1 1 110px}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
 button.p{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
 button.s{padding:4px 10px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -253,13 +254,14 @@ function status(m){if(m)window._m=m;$("saveMsg").textContent=(window._m||"")+(Q.
 function op(o){if(!o.ct)o.ct=new Date().toISOString();o.id=Date.now()+"-"+Math.random().toString(36).slice(2,7);Q.push(o);save();clearTimeout(timer);timer=setTimeout(sync,800)}
 function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[];S.sectores=S.sectores||[];S.compromisos=S.compromisos||[]}if(o.Q)Q=o.Q;if(o.RJ)RJ=o.RJ;if(o.PR)PR=o.PR;if(o.CFG)CFG=o.CFG}catch(e){}}
 async function sync(){
-  if(busy){again=true;status("Sincronizando… (se repetirá al terminar)");return}   // Etapa 6 f2
-  if(!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;again=false;status("Sincronizando…");var sentIds={},okRun=false;
+  var ult=S.ultSync?" · última: "+S.ultSync:"";   // Etapa 6 f3
+  if(busy){again=true;status("Sincronizando… (se repetirá al terminar)"+ult);return}   // Etapa 6 f2
+  if(!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;again=false;status("Sincronizando…"+ult);var sentIds={},okRun=false;
   try{
     var note="";if(Q.length){var sent=Q.slice();sent.forEach(function(o){sentIds[o.id]=1});var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);var nr=applyRes(sent,j);persist();if(nr)note+=" · "+nr+" operación(es) con aviso: revísalas";if(j.logError)note+=" · aviso: no se pudo escribir el registro de movimientos"}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
     if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];S.sectores=d.sectores||[];S.compromisos=d.compromisos||[];if(d.error4)S.e4err=String(d.error4);else{S.e4=e4Pick(d);S.e4err=""}var m=0;d.items.forEach(function(i){var mm=String(i.code).match(/^JM-(\d+)(?:-t|$)/i);var n=mm?parseInt(mm[1],10):0;if(n>m&&n<1e8)m=n});S.seq=Math.max(Number.isSafeInteger(S.seq)&&S.seq>=1&&S.seq<1e8?S.seq:1,m+1);S.catsSrv=(d.cats||[]).slice();S.aj6=d.ajustes6||null;S.resEst=d.resumenEstado||{}}
-    persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO")+note+(S.e4err?" · ERROR al cargar proveedores, compras y medios de pago":""));okRun=true;
+    S.ultSync=new Date().toLocaleTimeString("es-CO");persist();render();status("Sincronizado "+S.ultSync+note+(S.e4err?" · ERROR al cargar proveedores, compras y medios de pago":""));okRun=true;
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
   var nuevas=okRun&&Q.some(function(o){return !sentIds[o.id]});   // operaciones que entraron mientras se enviaba
