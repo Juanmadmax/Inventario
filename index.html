@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Etapa 6 f2 (index_etapa6_f2.html): parte de index_etapa6_f1.html, que no se modifica. Ajustes de la aceptación: sincronización que se repite, contador de códigos protegido, enlace de Drive en productos nuevos, botones desactivados visibles, avisos de uso. -->
 <!-- Etapa 6 (index_etapa6_f1.html, diseño documentacion/DISENO_ETAPA6.md v1.1): sin día 30, falta por reunir, compra con productos nuevos y tallas, carga inicial, fotos desde el celular, filtros, etiquetas carta, selector por fotos, WhatsApp y resumen diario. Parte de index_etapa5_f3.html, que no se modifica. -->
 <!-- Etapa 5 (index_etapa5_f3.html, diseño DISENO_ETAPA5_GARANTIAS_v1.2.md): garantías. Parte de index_etapa4_f10.html, que no se modifica. -->
 <!-- Etapa 4 (index_etapa4_f10.html, diseño DISENO_ETAPA4.md v1.5): medios de pago, proveedores, compras, pagos, programación del día 30, reservas, dinero y salidas. Parte de index_etapa3_f4.html. -->
@@ -21,7 +22,7 @@ h1{font-size:20px;margin:4px 0 12px}h2{font-size:15px;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input,select,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;min-width:0}
-input{flex:1 1 110px}button{cursor:pointer}
+input{flex:1 1 110px}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
 button.p{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
 button.s{padding:4px 10px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -173,11 +174,11 @@ table.t6{width:100%;border-collapse:collapse;font-size:12px}table.t6 td,table.t6
 <label class="f" style="display:block;margin-top:6px">Mensaje: cuota vencida<input id="ajTV" maxlength="600"></label>
 <label class="f" style="display:block;margin-top:6px">Mensaje: saldo general<input id="ajTS" maxlength="600"></label>
 <div class="mu" style="margin-top:4px">Variables: {nombre} {saldo} {cuota} {fecha} {vencido} {dias} {infopago}</div>
-<div class="row" style="margin-top:6px"><label class="f" style="flex:2 1 220px">Correos del resumen (máximo 5, separados por coma)<input id="ajCor"></label><label class="f">Hora<input id="ajHora" type="number" min="0" max="23" value="7"></label><label class="f">Días de anticipación (proveedores)<input id="ajDiasC" type="number" min="1" max="60" value="7"></label></div>
+<div class="row" style="margin-top:6px"><label class="f" style="flex:2 1 220px">Correos del resumen (máximo 5, separados por coma)<input id="ajCor"></label><label class="f">Hora<input id="ajHora" type="number" min="0" max="23" value="7"></label><label class="f">Días de anticipación en el correo (proveedores)<input id="ajDiasC" type="number" min="1" max="60" value="7"></label></div>
 <div class="row" style="margin-top:6px"><label class="mu"><input id="ajAct" type="checkbox" style="flex:none"> Enviar el resumen diario</label><button id="ajGuardar" class="p">Guardar mensajes y correo</button><button id="ajPrueba">Enviar prueba ahora</button></div>
 <div class="mu" id="ajResMsg" style="margin-top:6px"></div>
 <h3>Avisos de proveedores</h3>
-<div class="row"><label class="f">Días de anticipación<input id="ajDias" type="number" min="1" max="60" value="7"></label></div>
+<div class="row"><label class="f">Días de anticipación en esta pantalla (avisos y «Falta por reunir»)<input id="ajDias" type="number" min="1" max="60" value="7"></label></div>
 <h3>Carpeta de material en Drive</h3>
 <div class="mu">Copia las fotos originales de los productos con stock, con una subcarpeta por categoría.</div>
 <div class="row" style="margin-top:8px"><label class="mu"><input id="cOut" type="checkbox" style="flex:none"> Incluir agotados</label><button id="cFol" class="p">Crear carpeta en Drive</button></div>
@@ -245,21 +246,24 @@ var $=function(i){return document.getElementById(i)};
 var money=function(n){return "$"+Math.round(n).toLocaleString("es-CO")};
 var esc=function(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML};
 
-var Q=[],RJ=[],PR=[],CFG={u:"",k:""},busy=false;
+var Q=[],RJ=[],PR=[],CFG={u:"",k:""},busy=false,again=false;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({S:S,Q:Q,CFG:CFG,RJ:RJ,PR:PR}))}catch(e){}}
 function save(){persist();status()}
 function status(m){if(m)window._m=m;$("saveMsg").textContent=(window._m||"")+(Q.length?" · Pendientes: "+Q.length:" · Sin pendientes")}
 function op(o){if(!o.ct)o.ct=new Date().toISOString();o.id=Date.now()+"-"+Math.random().toString(36).slice(2,7);Q.push(o);save();clearTimeout(timer);timer=setTimeout(sync,800)}
 function load(raw){try{var o=JSON.parse(raw);if(o.S){S=o.S;S.clients=S.clients||[];S.ventas=S.ventas||[];S.canales=S.canales||[];S.sectores=S.sectores||[];S.compromisos=S.compromisos||[]}if(o.Q)Q=o.Q;if(o.RJ)RJ=o.RJ;if(o.PR)PR=o.PR;if(o.CFG)CFG=o.CFG}catch(e){}}
 async function sync(){
-  if(busy||!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;
+  if(busy){again=true;status("Sincronizando… (se repetirá al terminar)");return}   // Etapa 6 f2
+  if(!CFG.u||!CFG.k||!navigator.onLine)return;busy=true;again=false;status("Sincronizando…");var sentIds={},okRun=false;
   try{
-    var note="";if(Q.length){var sent=Q.slice();var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);var nr=applyRes(sent,j);persist();if(nr)note+=" · "+nr+" operación(es) con aviso: revísalas";if(j.logError)note+=" · aviso: no se pudo escribir el registro de movimientos"}
+    var note="";if(Q.length){var sent=Q.slice();sent.forEach(function(o){sentIds[o.id]=1});var r=await fetch(CFG.u,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({k:CFG.k,ops:sent},devP()))});var j=await r.json();if(j.error)throw new Error(j.error);var nr=applyRes(sent,j);persist();if(nr)note+=" · "+nr+" operación(es) con aviso: revísalas";if(j.logError)note+=" · aviso: no se pudo escribir el registro de movimientos"}
     var g=await fetch(CFG.u+"?k="+encodeURIComponent(CFG.k)+devQ());var d=await g.json();if(d.error)throw new Error(d.error);
-    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];S.sectores=d.sectores||[];S.compromisos=d.compromisos||[];if(d.error4)S.e4err=String(d.error4);else{S.e4=e4Pick(d);S.e4err=""}var m=0;d.items.forEach(function(i){var mm=String(i.code).match(/^JM-(\d+)(?:-t|$)/i);var n=mm?parseInt(mm[1],10):0;if(n>m)m=n});S.seq=Math.max(S.seq,m+1);S.catsSrv=(d.cats||[]).slice();S.aj6=d.ajustes6||null;S.resEst=d.resumenEstado||{}}
-    persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO")+note+(S.e4err?" · ERROR al cargar proveedores, compras y medios de pago":""));
+    if(!Q.length){if(d.cats.length)S.cats=d.cats;S.items=d.items.map(function(i){i.id=i.code;return i});S.clients=d.clients||[];S.ventas=d.ventas||[];S.canales=d.canales||[];S.sectores=d.sectores||[];S.compromisos=d.compromisos||[];if(d.error4)S.e4err=String(d.error4);else{S.e4=e4Pick(d);S.e4err=""}var m=0;d.items.forEach(function(i){var mm=String(i.code).match(/^JM-(\d+)(?:-t|$)/i);var n=mm?parseInt(mm[1],10):0;if(n>m&&n<1e8)m=n});S.seq=Math.max(Number.isSafeInteger(S.seq)&&S.seq>=1&&S.seq<1e8?S.seq:1,m+1);S.catsSrv=(d.cats||[]).slice();S.aj6=d.ajustes6||null;S.resEst=d.resumenEstado||{}}
+    persist();render();status("Sincronizado "+new Date().toLocaleTimeString("es-CO")+note+(S.e4err?" · ERROR al cargar proveedores, compras y medios de pago":""));okRun=true;
   }catch(e){status("Sin sincronizar ("+e.message+")")}
   busy=false;
+  var nuevas=okRun&&Q.some(function(o){return !sentIds[o.id]});   // operaciones que entraron mientras se enviaba
+  if(again||nuevas){again=false;setTimeout(sync,300)}
 }
 function applyRes(sent,j){
   var res={},gone={},nr=0;
@@ -342,7 +346,7 @@ $("add").onclick=function(){
   var name=$("fName").value.trim();if(!name||!$("fCat").value){return}
   var ph=pid($("fPhoto").value);if($("fPhoto").value.trim()&&!ph){alert("No reconocí el enlace de la foto. Pega el enlace de Drive (Compartir → Copiar enlace) o solo el ID.");return}
   var code=$("fCode").value.trim();
-  if(!code){do{code="JM-"+String(S.seq++).padStart(4,"0")}while(byCode(code))}
+  if(!code){code=sigCodigo();if(!code)return}   // Etapa 6 f2: mismo generador protegido
   else if(byCode(code)){alert("Ese código ya existe.");return}
   S.items.unshift({id:Date.now()+""+Math.floor(Math.random()*999),code:code,name:name,cat:$("fCat").value,
     qty:+$("fQty").value||0,cost:($("fCost").value===""?"":(+$("fCost").value||0)),price:+$("fPrice").value||0,min:+$("fMin").value||0,photo:ph});
@@ -397,7 +401,8 @@ $("pCls").onclick=function(){$("pdlg").close()};
 $("impBtn").onclick=async function(){
   if(!CFG.u||!CFG.k){$("impMsg").textContent="Conecta primero con Google Sheets.";return}
   var crear=$("impCrear").checked,tot={a:0,n:0,r:0},tk="",j=null,b=$("impBtn");b.disabled=true;
-  try{await sync();do{j=null;for(var t=0;t<3&&!j;t++){try{j=await post({act:"import",crear:crear,desde:tk})}catch(e){if(t===2)throw e;await new Promise(function(f){setTimeout(f,1500)})}}   // misma ficha al reintentar (R2)
+  $("impMsg").textContent="Sincronizando antes de importar…";   // Etapa 6 f2
+  try{await sync();$("impMsg").textContent="Importando fotos…";do{j=null;for(var t=0;t<3&&!j;t++){try{j=await post({act:"import",crear:crear,desde:tk})}catch(e){if(t===2)throw e;await new Promise(function(f){setTimeout(f,1500)})}}   // misma ficha al reintentar (R2)
       tot.a+=j.asociadas;tot.n+=j.nuevos;tot.r+=j.revisados;tk=j.siguiente;$("impMsg").textContent="Revisados "+tot.r+" de "+j.total+"…"}while(j.pendiente);
     $("impMsg").textContent="Listo: "+tot.a+" foto(s) asociada(s)"+(crear?", "+tot.n+" producto(s) nuevo(s)":"")+".";await sync()}catch(e){$("impMsg").textContent="Se detuvo ("+e.message+"). Puedes repetir la importación: lo ya hecho no se duplica."}
   b.disabled=false;
@@ -405,7 +410,8 @@ $("impBtn").onclick=async function(){
 $("ordBtn").onclick=async function(){
   if(!CFG.u||!CFG.k){$("impMsg").textContent="Conecta primero con Google Sheets.";return}
   var tk="",j=null,n=0,f=[];this.disabled=true;
-  try{await sync();do{j=await post({act:"ordenarfotos",desde:tk});n+=j.ordenadas;f=f.concat(j.fallas);tk=j.siguiente;$("impMsg").textContent="Ordenando… "+n}while(j.pendiente);
+  $("impMsg").textContent="Sincronizando antes de ordenar…";   // Etapa 6 f2
+  try{await sync();$("impMsg").textContent="Ordenando fotos en Drive…";do{j=await post({act:"ordenarfotos",desde:tk});n+=j.ordenadas;f=f.concat(j.fallas);tk=j.siguiente;$("impMsg").textContent="Ordenando… "+n}while(j.pendiente);
     $("impMsg").textContent="Listo: "+n+" foto(s) movida(s) o renombrada(s)"+(f.length?". Sin foto accesible: "+f.slice(0,8).join(", "):"")+"."}catch(e){$("impMsg").textContent="Se detuvo ("+e.message+"). Repetirlo es seguro."}
   this.disabled=false;
 };
@@ -1297,7 +1303,7 @@ function e4Fact(provUid){
   e4Dlg("Compra / factura",'<div class="row">'+sel("fcP","Proveedor",provOpts(),provUid||"")+inp("fcN","N.º factura del proveedor","")+'</div><div class="row" style="margin-top:8px">'+inp("fcF","Fecha de la factura",hoy,"date")+inp("fcPl","Plazo (días)",p.plazo||0,"number",' min="0"')+'<span class="mu" id="fcV"></span></div><div class="row" style="margin-top:8px">'+sel("fcT","Tipo",["Compra de mercancía","Obligación sin mercancía"],"Compra de mercancía")+'</div>'+
     '<div id="fcCompra"><h3>Productos</h3><div class="row"><input id="fcProd" list="dl4" placeholder="Código o nombre" style="flex:2 1 160px">'+e4ListaProd(true)+'<button id="fcAdd" class="s">Agregar</button><button id="fcPick" class="s">Elegir por foto</button></div><div class="row" style="margin-top:6px"><button id="fcNuevo" class="s">+ Producto nuevo</button><button id="fcTallas" class="s">+ Modelo con tallas</button></div><div id="fcNew" hidden></div><div id="fcLines"></div></div>'+
     '<div id="fcObl" hidden><div class="row" style="margin-top:8px">'+inp("fcVal","Valor de la obligación","","number",' min="1"')+'</div></div>'+inp("fcNota","Nota","")+'<div class="row" style="margin-top:6px;justify-content:space-between"><b>Valor</b><b id="fcTot">$0</b></div>'+
-    '<label class="mu" style="display:block;margin-top:8px"><input type="checkbox" id="fcLbl" checked style="flex:none"> Agregar a la lista de etiquetas al guardar</label><label class="mu" style="display:block;margin-top:8px"><input type="checkbox" id="fcPay" style="flex:none"> Registrar pago ahora</label><div id="fcPayW" hidden><div class="row">'+inp("fcPV","Valor del pago","","number",' min="1"')+'</div><h3>Medios del pago</h3>'+e4MedBox("fcMed")+'<div class="mu">El pago se registra como operación aparte: si el servidor lo rechaza, la factura queda registrada y pendiente.</div></div>',function(){
+    '<label class="mu" id="fcLblW" style="display:block;margin-top:8px"><input type="checkbox" id="fcLbl" checked style="flex:none"> Agregar a la lista de etiquetas al guardar</label><label class="mu" style="display:block;margin-top:8px"><input type="checkbox" id="fcPay" style="flex:none"> Registrar pago ahora</label><div id="fcPayW" hidden><div class="row">'+inp("fcPV","Valor del pago","","number",' min="1"')+'</div><h3>Medios del pago</h3>'+e4MedBox("fcMed")+'<div class="mu">El pago se registra como operación aparte: si el servidor lo rechaza, la factura queda registrada y pendiente.</div></div>',function(){
     var bl=null,pv=fv("fcP"),tipo=fv("fcT"),f={uid:uidOp("F"),prov:pv,fecha:fv("fcF"),plazo:Math.max(0,Math.floor(+fv("fcPl")||0)),tipo:tipo,numProv:fv("fcN"),nota:fv("fcNota")};
     if(!pv){alert("Elige el proveedor.");return false}if(!f.fecha){alert("Escribe la fecha de la factura.");return false}
     if(tipo==="Compra de mercancía"){if(!FL.length){alert("Agrega al menos un producto.");return false}
@@ -1320,7 +1326,7 @@ function e4Fact(provUid){
   $("fcPay").onchange=function(){$("fcPayW").hidden=!this.checked;if(this.checked){if(!fv("fcPV"))$("fcPV").value=Math.round(fv("fcT")==="Compra de mercancía"?FL.reduce(function(a,l){return a+l.qty*(+l.cost||0)},0):(+fv("fcVal")||0))||"";payIni()}};
   $("fcPV").oninput=function(){if(MED.fcMed){MED.fcMed.total=Math.round(+this.value||0);e4MedSum("fcMed")}};
   $("fcP").onchange=function(){var q=provBy(this.value);if(q)$("fcPl").value=q.plazo||0;venc();if($("fcPay").checked)payIni()};$("fcF").oninput=venc;$("fcPl").oninput=venc;venc();
-  $("fcT").onchange=function(){$("fcCompra").hidden=this.value!=="Compra de mercancía";$("fcObl").hidden=!$("fcCompra").hidden;lines()};$("fcVal").oninput=lines;
+  $("fcT").onchange=function(){$("fcCompra").hidden=this.value!=="Compra de mercancía";$("fcLblW").hidden=$("fcCompra").hidden;$("fcObl").hidden=!$("fcCompra").hidden;lines()};$("fcVal").oninput=lines;
   $("fcAdd").onclick=function(){var it=e4BuscarProd(fv("fcProd"),true);if(!it){alert("No encontré el producto. Elígelo de la lista o escribe su código exacto.");return}FL.push({code:it.code,name:it.name,qty:1,cost:it.cost||""});$("fcProd").value="";lines()};
   e6CompraHooks(lines);
   $("fcLines").oninput=function(e){var r=e.target.closest("[data-i]");if(!r)return;var l=FL[+r.dataset.i];if(e.target.classList.contains("fq"))l.qty=Math.floor(+e.target.value||0);if(e.target.classList.contains("fc"))l.cost=e.target.value===""?"":Math.round(+e.target.value*100)/100;$("fcTot").textContent=money(FL.reduce(function(a,x){return a+x.qty*(+x.cost||0)},0))};
@@ -1354,6 +1360,8 @@ function e4Resv(provUid){
   e4Dlg("Destinar dinero · "+p.nombre,'<h3>Componentes de abonos (elige uno o varios)</h3>'+L.map(function(x){return '<div class="row" style="margin-bottom:6px"><div class="nm"><b>'+esc(x.k)+' · '+esc(x.c.medio)+(x.c.cuenta?' ('+esc(x.c.cuenta)+')':'')+'</b><small>libre para destinar '+money(x.c.libre)+'</small></div><input class="rv" data-k="'+esc(x.k)+'" data-max="'+x.c.libre+'" type="number" min="0" style="width:110px;flex:none"></div>'}).join("")+inp("rvN","Nota",""),function(){
     var it=[],err="";$("e4Body").querySelectorAll(".rv").forEach(function(i){var x=Math.round(+i.value||0);if(x>0){if(x>+i.dataset.max+0.005)err="El componente "+i.dataset.k+" solo tiene "+money(+i.dataset.max)+" libre.";it.push({comp:i.dataset.k,valor:x})}});
     if(err){alert(err);return false}if(!it.length){alert("Indica cuánto destinar de al menos un componente.");return false}
+    var fx=e6FaltanteUI().lista.filter(function(y){return y.prov===p.num})[0],dv=fx?fx.vencido+fx.porVencer:0;   // Etapa 6 f2: aviso informativo, no bloquea
+    if(!(dv>0.005)&&!confirm((p.saldo>0.005?p.nombre+" tiene deuda de "+money(p.saldo)+", pero ninguna factura vence en los próximos "+e4Dias()+" días.":p.nombre+" no tiene deuda pendiente.")+"\n\nEl dinero quedará destinado y se usará en los próximos pagos a este proveedor. ¿Destinar de todas formas?"))return false;
     op({t:"resv",r:{uid:uidOp("R"),prov:p.uid,prog:"",items:it,nota:fv("rvN")}})},"Destinar");
 }
 function e4Avisos(){var d=e4(),t=ymd(new Date()),lim=nextD(t,e4Dias(),1),sem=nextD(t,7,1),A=[];
@@ -1582,7 +1590,7 @@ function faltFicha(num){var x=e6FaltanteUI().lista.filter(function(y){return y.p
 var PLANT6={proxima:"Hola {nombre}, te recordamos que tu cuota de {cuota} vence el {fecha}. Tu saldo total es {saldo}. {infopago}",vencida:"Hola {nombre}, tienes {vencido} vencido ({dias} días). Tu saldo total es {saldo}. ¿Nos confirmas cuándo puedes ponerte al día? {infopago}",saldo:"Hola {nombre}, tu saldo pendiente es {saldo}. {infopago}"};
 function aj6(){var a=S.aj6||{},p=a.plantillas||{};return {infoPago:a.infoPago||"",plantillas:{proxima:p.proxima||PLANT6.proxima,vencida:p.vencida||PLANT6.vencida,saldo:p.saldo||PLANT6.saldo}}}
 function waNum(t){var d=String(t||"").replace(/\D/g,"");if(d.length===10&&d[0]==="3")return "57"+d;if(d.length===12&&d.indexOf("57")===0)return d;return ""}
-function fmtPl(tx,v){return String(tx||"").replace(/\{(\w+)\}/g,function(m,k){return v[k]!==undefined?String(v[k]):m}).replace(/\s+$/,"")}
+function fmtPl(tx,v){return String(tx||"").replace(/\{(\w+)\}/g,function(m,k){return v[k]!==undefined?String(v[k]):m}).replace(/(^|[^\d.,])1 días\b/g,"$11 día").replace(/\s+$/,"")}   // Etapa 6 f2: singular
 function waUrl(tel,msg){var n=waNum(tel);return "https://wa.me/"+(n||"")+"?text="+encodeURIComponent(msg)}
 function waAbrir(tel,msg){var u=waUrl(tel,msg);try{window.open(u,"_blank")}catch(e){}return u}
 function waBloq(uid){return S.ventas.some(function(v){return v.clientUid===uid&&v.corrPend})}
@@ -1601,7 +1609,9 @@ $("eFotoBtn").onclick=function(){$("eFotoF").value="";$("eFotoF").click()};
 $("eFotoF").onchange=async function(){var f=this.files[0];if(!f||!editing)return;var code=$("eCode").value.trim()||editing.code,cat=$("eCat").value;$("eFotoMsg").textContent="Subiendo…";
   try{var id=await subirFoto(f,code,cat);$("ePhoto").value=id;$("eFotoMsg").textContent="Foto subida a Inventario fotos/"+cat+"/"+code+". Pulsa Guardar para asociarla."}catch(e){$("eFotoMsg").textContent="Error: "+e.message}};
 // ---------- 4 Compra con productos nuevos y tallas ----------
-function sigCodigo(extra){var c;do{c="JM-"+String(S.seq++).padStart(4,"0")}while(byCode(c)||(extra||[]).some(function(x){return String(x).toLowerCase()===c.toLowerCase()}));return c}
+function seqMax(){var m=0;S.items.forEach(function(i){var mm=String(i.code).match(/^JM-(\d+)(?:-t|$)/i);var n=mm?parseInt(mm[1],10):0;if(n>m&&n<1e8)m=n});return m}
+function seqOk(){if(!(Number.isSafeInteger(S.seq)&&S.seq>=1&&S.seq<1e8)){S.seq=seqMax()+1;persist()}}   // Etapa 6 f2: un contador dañado (texto, NaN o enorme) se recalcula desde los códigos JM-####
+function sigCodigo(extra){seqOk();var c,n=0;do{if(++n>20000){alert("No encontré un código automático libre. Escribe el código a mano.");return ""}c="JM-"+String(S.seq++).padStart(4,"0")}while(byCode(c)||(extra||[]).some(function(x){return String(x).toLowerCase()===c.toLowerCase()}));return c}
 function codMal(c){c=String(c||"");return !c.trim()||c.length>40||/[,\s]/.test(c)}
 function parseTallas(s){s=String(s||"").trim();if(!s)return {err:"Escribe las tallas (por ejemplo 6:1, 7:2 o 5-9)."};var out=[],seen={},m=s.match(/^(\d+)\s*-\s*(\d+)$/);
   if(m){var a=+m[1],b=+m[2];if(b<a||b-a>30)return {err:"Rango de tallas inválido."};for(var i=a;i<=b;i++)out.push({t:String(i),q:1})}
@@ -1610,7 +1620,7 @@ function parseTallas(s){s=String(s||"").trim();if(!s)return {err:"Escribe las ta
   return out.length?{lista:out}:{err:"Escribe al menos una talla."}}
 function e6CompraHooks(lines){
   function form(modo){var cs=S.cats.map(function(c){return '<option>'+esc(c)+'</option>'}).join(""),foto="";
-    $("fcNew").hidden=false;$("fcNew").innerHTML='<div class="card" style="margin-top:8px"><h3 style="margin-top:0">'+(modo==="t"?'Modelo con tallas':'Producto nuevo')+'</h3><div class="row">'+inp("fnN","Nombre","")+'<label class="f">Categoría<select id="fnC">'+cs+'</select></label></div><div class="row" style="margin-top:6px">'+inp("fnCo","Costo de compra","","number",' min="0"')+inp("fnP","Precio venta","","number",' min="0"')+inp("fnM","Stock mínimo",0,"number",' min="0"')+(modo==="t"?'':inp("fnQ","Cantidad",1,"number",' min="1"'))+'</div><div class="row" style="margin-top:6px">'+inp("fnCod",modo==="t"?"Código base (vacío = automático)":"Código (vacío = automático)","")+(modo==="t"?inp("fnT","Tallas y cantidades (ej. 6:1, 7:2 o 5-9)",""):"")+'</div>'+(modo==="t"?'<div class="mu" style="margin-top:4px">Se crea un producto por talla: código «base-t6», nombre «… · talla 6».</div>':'')+'<div class="row" style="margin-top:6px"><button class="s" id="fnFotoB">Tomar o elegir foto</button><input id="fnFotoF" type="file" accept="image/*" capture="environment" hidden><span class="mu" id="fnFotoM"></span></div><div class="row ctr"><button class="s p" id="fnOk">Agregar a la compra</button><button class="s" id="fnX">Cancelar</button></div></div>';
+    $("fcNew").hidden=false;$("fcNew").innerHTML='<div class="card" style="margin-top:8px"><h3 style="margin-top:0">'+(modo==="t"?'Modelo con tallas':'Producto nuevo')+'</h3><div class="row">'+inp("fnN","Nombre","")+'<label class="f">Categoría<select id="fnC">'+cs+'</select></label></div><div class="row" style="margin-top:6px">'+inp("fnCo","Costo de compra","","number",' min="0"')+inp("fnP","Precio venta","","number",' min="0"')+inp("fnM","Stock mínimo",0,"number",' min="0"')+(modo==="t"?'':inp("fnQ","Cantidad",1,"number",' min="1"'))+'</div><div class="row" style="margin-top:6px">'+inp("fnCod",modo==="t"?"Código base (vacío = automático)":"Código (vacío = automático)","")+(modo==="t"?inp("fnT","Tallas y cantidades (ej. 6:1, 7:2 o 5-9)",""):"")+'</div>'+(modo==="t"?'<div class="mu" style="margin-top:4px">Se crea un producto por talla: código «base-t6», nombre «… · talla 6».</div>':'')+'<div class="row" style="margin-top:6px"><button class="s" id="fnFotoB">Tomar o elegir foto</button><input id="fnFotoF" type="file" accept="image/*" capture="environment" hidden><span class="mu" id="fnFotoM"></span></div><div class="row" style="margin-top:6px">'+inp("fnFL","o pega el enlace de Drive de la foto","")+'</div><div class="row ctr"><button class="s p" id="fnOk">Agregar a la compra</button><button class="s" id="fnX">Cancelar</button></div></div>';
     function usados(){return FL.map(function(l){return l.code})}
     function codigos(){var base=fv("fnCod");if(modo==="t"){var T=parseTallas(fv("fnT"));if(T.err)return {err:T.err};if(!base){base=sigCodigo(usados());$("fnCod").value=base}return {base:base,L:T.lista.map(function(x){return {code:base+"-t"+x.t,t:x.t,q:x.q}})}}
       if(!base){base=sigCodigo(usados());$("fnCod").value=base}return {base:base,L:[{code:base,q:Math.floor(+fv("fnQ")||0)}]}}
@@ -1622,6 +1632,7 @@ function e6CompraHooks(lines){
       if(!nom){alert("Escribe el nombre.");return}if(!cat){alert("Crea primero una categoría.");return}if(co===""||!(+co>=0)){alert("Escribe el costo de compra.");return}co=Math.round(+co*100)/100;
       var C=codigos();if(C.err){alert(C.err);return}if(codMal(C.base)){alert("El código no es válido (sin espacios ni comas).");return}
       if(modo!=="t"&&!(C.L[0].q>0)){alert("Escribe la cantidad.");return}
+      var lk=fv("fnFL");if(lk){var lid=pid(lk);if(!lid){alert("No reconocí el enlace de la foto. Pega el enlace de Drive (Compartir → Copiar enlace) o solo el ID.");return}foto=lid}   // Etapa 6 f2: el enlace pegado tiene prioridad
       var us=usados();for(var i=0;i<C.L.length;i++){var cc=C.L[i].code;if(byCode(cc)){alert("El código "+cc+" ya existe en el inventario. Usa otro código o agrega el producto existente.");return}if(us.some(function(u){return u.toLowerCase()===cc.toLowerCase()})){alert("El código "+cc+" ya está en esta compra.");return}}
       if(FL.length+C.L.length>50){alert("Una compra admite máximo 50 líneas. Registra el resto en otra compra con el mismo número de factura.");return}
       C.L.forEach(function(x){var n=modo==="t"?nom+" · talla "+x.t:nom;FL.push({code:x.code,name:n,qty:x.q,cost:co,nuevo:{nombre:n,cat:cat,precio:pr,min:mi,foto:foto}})});
@@ -1750,7 +1761,10 @@ $("ajGuardar").onclick=async function(){if(!navigator.onLine||!CFG.u){alert("Gua
   $("ajResMsg").textContent="Guardando…";
   try{var j=await post({act:"ajustes",aj:{correos:$("ajCor").value,hora:Math.floor(+$("ajHora").value),dias:Math.floor(+$("ajDiasC").value),activo:act,aceptoAviso:acepto,infoPago:$("ajIP").value,plantillas:{proxima:$("ajTP").value,vencida:$("ajTV").value,saldo:$("ajTS").value}}});
     S.aj6=j.ajustes;S.aj6.avisoAceptado=!!j.ajustes.avisoAceptado;persist();$("ajResMsg").textContent="Guardado."+(j.aviso?" "+j.aviso:"")}catch(e){$("ajResMsg").textContent="No se guardó: "+e.message}};
-$("ajPrueba").onclick=async function(){if(!navigator.onLine||!CFG.u){alert("Requiere conexión.");return}$("ajResMsg").textContent="Enviando prueba…";
+$("ajPrueba").onclick=async function(){if(!navigator.onLine||!CFG.u){alert("Requiere conexión.");return}
+  if(!(S.aj6&&S.aj6.avisoAceptado)){if(!confirm(AVISO6))return;$("ajResMsg").textContent="Guardando la aceptación del aviso…";   // Etapa 6 f2: R4 antes de la prueba
+    try{var ja=await post({act:"ajustes",aj:{correos:$("ajCor").value,hora:Math.floor(+$("ajHora").value),dias:Math.floor(+$("ajDiasC").value),activo:$("ajAct").checked,aceptoAviso:true,infoPago:$("ajIP").value,plantillas:{proxima:$("ajTP").value,vencida:$("ajTV").value,saldo:$("ajTS").value}}});S.aj6=ja.ajustes;S.aj6.avisoAceptado=!!ja.ajustes.avisoAceptado;persist()}catch(e){$("ajResMsg").textContent="No se envió: "+e.message;return}}
+  $("ajResMsg").textContent="Enviando prueba…";
   try{await post({act:"resumen_prueba"});$("ajResMsg").textContent="Prueba enviada a "+((S.aj6&&S.aj6.correos)||[]).join(", ")+"."}catch(e){$("ajResMsg").textContent="No se envió: "+e.message}};
 
 $("tPrv").onclick=function(){setTab("p")};
